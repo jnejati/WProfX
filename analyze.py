@@ -15,16 +15,7 @@ _experiment_dir = '/home/jnejati/PLTSpeed/desktop_ustest1'
 _experiment_dir = '/home/jnejati/PLTSpeed/desktop_zatest1'
 _all_dirs = os.listdir(_experiment_dir)
 _all_dirs.sort()
-_exclude_list = ['punchng.com'
-, 'iroking.com'
-, 'www.absa.co.za'
-,'www.almasryalyoum.com'
-,'www.amazon.com'
-,'www.baidu.com'
-,'www.facebook.com'
-,'www.ghanaweb.com'
-,'www.google.co.za'
-]
+_exclude_list = []
 working_dirs = [x for x in _all_dirs if x not in _exclude_list]
 #working_dirs = ['www.statefarm.com']
 for _site_dir in working_dirs:
