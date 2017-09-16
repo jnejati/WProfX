@@ -1,6 +1,8 @@
 PLTSpeed
 =======================
+
 PLTSpeed captures and analyzes Chrome browsing traces in order to extract dependency relationship between activities. It is a continuation of works done before in [WProf] and [WProf-M] papers.
+
 Usage
 ----------------
 
