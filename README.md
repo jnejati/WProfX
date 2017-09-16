@@ -7,6 +7,11 @@ Setup
 -----
 Refer to [chrome-remote-interface] for the latest set up.
 [chrome-remote-interface]:https://github.com/cyrus-and/chrome-remote-interface
+
+### Install chrome-remote-interface
+
+    npm install chrome-remote-interface
+
 ### Chrome/Chromium
 
 #### Desktop
