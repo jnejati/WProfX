@@ -3,10 +3,14 @@ PLTSpeed
 
 PLTSpeed captures and analyzes Chrome browsing traces in order to extract dependency relationship between activities. It is a continuation of works done before in [WProf] and [WProf-M] papers.
 
-Usage
-----------------
+Setup
+-----
 
-#Enable Chrome/Chromium remote debugging:
+### Chrome/Chromium
+
+#### Desktop
+
+Enable Chrome/Chromium remote debugging:
 google-chrome-stable --remote-debugging-port=9222 --start-maximized  --ignore-certificate-errors --user-data-dir=$TMPDIR/chrome-profiling --no-default-browser-check
 npm install chrome-remote-interface
 
