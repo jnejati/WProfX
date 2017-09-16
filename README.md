@@ -32,7 +32,7 @@ Plug the device and enable the [port forwarding][adb], for example:
 #### Note
 You might find following flags usefull depending on your use case:
 
-    google-chrome-stable --remote-debugging-port=9222 --start-maximized  --ignore-certificate-errors --user-data-dir=$TMPDIR/chrome-            profiling --no-default-browser-check
+    google-chrome-stable --remote-debugging-port=9222 --start-maximized  --ignore-certificate-errors --user-data-dir=$TMPDIR/chrome-profiling --no-default-browser-check
 
 [WProf]: http://www3.cs.stonybrook.edu/~arunab/papers/wprof.pdf
 [WProf-M]:http://www3.cs.stonybrook.edu/~arunab/papers/wprofm.pdf
