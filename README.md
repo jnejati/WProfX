@@ -35,7 +35,7 @@ Plug the device and enable the [port forwarding][adb], for example:
 [adb]: https://developer.chrome.com/devtools/docs/remote-debugging-legacy
 
 #### Note
-You might find the following flags usefull depending on your use case:PLTSpeed
+You might find the following flags usefull depending on your use case
 
     google-chrome-stable --remote-debugging-port=9222 --start-maximized  --ignore-certificate-errors --user-data-dir=$TMPDIR/chrome-profiling --no-default-browser-check
 
@@ -43,20 +43,14 @@ You might find the following flags usefull depending on your use case:PLTSpeed
 [WProf-M]:http://www3.cs.stonybrook.edu/~arunab/papers/wprofm.pdf
 
 ### Usage
+
 #### Collect traces
 - Install all required python modules in main.py
 - Put the list of Web sites you want to analyze in live_test.txt
 - Configure  `bases_dir`, `repeat_no` variables in main.py based on your preferences.
-- Run main.py with python > 3.3
-
-
-
-	python3.5 main.py   
+- Run `main.py` with python > 3.3 
 	
 
 #### Analyze traces
 - Configure  `_experiment_dir` in analyze.py.
 - Run `analyze.py` with python > 3.3
-
-	python3.5 main.py
-
