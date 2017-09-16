@@ -49,11 +49,14 @@ You might find the following flags usefull depending on your use case:PLTSpeed
 - Configure  `bases_dir`, `repeat_no` variables in main.py based on your preferences.
 - Run main.py with python > 3.3
 
-	python3.5 main.py
-   
+
+
+	python3.5 main.py   
+	
 
 #### Analyze traces
 - Configure  `_experiment_dir` in analyze.py.
 - Run `analyze.py` with python > 3.3
+
 	python3.5 main.py
 
