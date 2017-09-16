@@ -94,26 +94,3 @@ You might find the following flags usefull depending on your use case:
 - Run `analyze.py` with python > 3.3
 	python3.5 main.py
 
-
-
-
-
-
- 
-
-	
-    
-    
-
-
-
-
-
-    google-chrome-stable --remote-debugging-port=9222 --start-maximized  --ignore-certificate-errors --user-data-dir=$TMPDIR/chrome-profiling --no-default-browser-check
-
-[WProf]: http://www3.cs.stonybrook.edu/~arunab/papers/wprof.pdf
-[WProf-M]:http://www3.cs.stonybrook.edu/~arunab/papers/wprofm.pdf
-
-### Usage
-
-
