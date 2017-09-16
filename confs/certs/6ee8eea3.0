@@ -1,0 +1,49 @@
+-----BEGIN CERTIFICATE-----
+MIICcDCCAdkCBC7hkoQwDQYJKoZIhvcNAQEFBQAwfzELMAkGA1UEBhMCVVMxETAP
+BgNVBAgMCE5ldyBZb3JrMRQwEgYDVQQHDAtTdG9ueSBCcm9vazEZMBcGA1UECgwQ
+Q29tcHV0ZXIgU2NpZW5jZTEPMA0GA1UECwwGTmV0U3lzMRswGQYDVQQDDBJ3d3cu
+d2VsbHNmYXJnby5jb20wHhcNMTcwMzEwMDYyNzM0WhcNMjcwMzA4MDYyNzM0WjB/
+MQswCQYDVQQGEwJVUzERMA8GA1UECAwITmV3IFlvcmsxFDASBgNVBAcMC1N0b255
+IEJyb29rMRkwFwYDVQQKDBBDb21wdXRlciBTY2llbmNlMQ8wDQYDVQQLDAZOZXRT
+eXMxGzAZBgNVBAMMEnd3dy53ZWxsc2ZhcmdvLmNvbTCBnzANBgkqhkiG9w0BAQEF
+AAOBjQAwgYkCgYEA6dBacASyAnBROYOpiY0bZivhFn/CyL/+hjAE1QCJhVIOsiVM
+004oE4doGEFi/lLQyri3Rvk9oVMIOYsbBX03zxOJ8G4pWZGkzu2/nK2ucNMdzHFd
+VqvuCAa050xowfszQ9SVGsXNHAy491ZFkLf0gv34lL8oIzfrHUM4wCmWZakCAwEA
+ATANBgkqhkiG9w0BAQUFAAOBgQDamyjsNlVKli71kttn3nA+L4ihsX/fNJ8YZJJW
+u+BSZdw1DT7TvZBsicWZ7/htm09rvNBcZUBIhaXAfvNHAWx8kwOotIMtsbEs9dRK
+2T01PDe3JlbidOH3I3rPmlsV11RDkuVy64D1FfDwSTZ+HRtPobdkGP5E1oBs9AXt
++TI7GQ==
+-----END CERTIFICATE-----
+Certificate:
+    Data:
+        Version: 1 (0x0)
+        Serial Number: 786535044 (0x2ee19284)
+    Signature Algorithm: sha1WithRSAEncryption
+        Issuer: C=US, ST=New York, L=Stony Brook, O=Computer Science, OU=NetSys, CN=www.wellsfargo.com
+        Validity
+            Not Before: Mar 10 06:27:34 2017 GMT
+            Not After : Mar  8 06:27:34 2027 GMT
+        Subject: C=US, ST=New York, L=Stony Brook, O=Computer Science, OU=NetSys, CN=www.wellsfargo.com
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (1024 bit)
+                Modulus:
+                    00:e9:d0:5a:70:04:b2:02:70:51:39:83:a9:89:8d:
+                    1b:66:2b:e1:16:7f:c2:c8:bf:fe:86:30:04:d5:00:
+                    89:85:52:0e:b2:25:4c:d3:4e:28:13:87:68:18:41:
+                    62:fe:52:d0:ca:b8:b7:46:f9:3d:a1:53:08:39:8b:
+                    1b:05:7d:37:cf:13:89:f0:6e:29:59:91:a4:ce:ed:
+                    bf:9c:ad:ae:70:d3:1d:cc:71:5d:56:ab:ee:08:06:
+                    b4:e7:4c:68:c1:fb:33:43:d4:95:1a:c5:cd:1c:0c:
+                    b8:f7:56:45:90:b7:f4:82:fd:f8:94:bf:28:23:37:
+                    eb:1d:43:38:c0:29:96:65:a9
+                Exponent: 65537 (0x10001)
+    Signature Algorithm: sha1WithRSAEncryption
+         da:9b:28:ec:36:55:4a:96:2e:f5:92:db:67:de:70:3e:2f:88:
+         a1:b1:7f:df:34:9f:18:64:92:56:bb:e0:52:65:dc:35:0d:3e:
+         d3:bd:90:6c:89:c5:99:ef:f8:6d:9b:4f:6b:bc:d0:5c:65:40:
+         48:85:a5:c0:7e:f3:47:01:6c:7c:93:03:a8:b4:83:2d:b1:b1:
+         2c:f5:d4:4a:d9:3d:35:3c:37:b7:26:56:e2:74:e1:f7:23:7a:
+         cf:9a:5b:15:d7:54:43:92:e5:72:eb:80:f5:15:f0:f0:49:36:
+         7e:1d:1b:4f:a1:b7:64:18:fe:44:d6:80:6c:f4:05:ed:f9:32:
+         3b:19

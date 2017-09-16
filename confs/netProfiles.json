@@ -1,0 +1,14 @@
+[  
+   {  
+      "name":"zatest1",
+      "device_type":"desktop",
+      "page_type":"original",
+      "cached":"False",
+      "download_rate":"2Mbit",
+      "download_delay":"2.5ms",
+      "download_loss":"0.0%",
+      "upload_rate":"1Mbit",
+      "upload_delay":"2.5ms",
+      "upload_loss":"0.0%"
+   }
+]

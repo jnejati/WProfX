@@ -6,13 +6,12 @@ import subprocess
 import time
 import logging
 import coloredlogs
-import trace_parser_modular3 as tp
+import trace_parser as tp
 coloredlogs.install(level='INFO')
 
 #_command = '/home/jnejati/PLTSpeed/analysis/trace_parser.py'
 #logging.getLogger().setLevel(logging.INFO)
-_experiment_dir = '/home/jnejati/PLTSpeed/desktop_ustest1'
-_experiment_dir = '/home/jnejati/PLTSpeed/desktop_zatest1'
+_experiment_dir = '/home/jnejati/PLTSpeed/desktop_test1'
 _all_dirs = os.listdir(_experiment_dir)
 _all_dirs.sort()
 _exclude_list = []

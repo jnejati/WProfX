@@ -32,6 +32,7 @@ import csv
 from urllib.parse import urldefrag
 import networkx as nx
 import matplotlib.pyplot as plt
+import tldextract
 
 # from graph_tool.all import *
 # try a fast json parser if it is installed
@@ -77,6 +78,7 @@ class Trace():
         self.networks_lookup_id = {}
         self.loading = {}
         self.loading_list = []
+        self.loading_lookup_url = {}
         self.loading_lookup_id = {}
         self.painting = {}
         self.painting_list = []
@@ -87,6 +89,10 @@ class Trace():
         self.output = []
         self.last_activity = []
         self.all = []
+        self.all_dict = {}
+        self.all_modified = []
+        self.all_modified_dict = {}
+        self.deps_modified = []
         self.all_startTime_lookup = {}
         self.start_time = None
         self.end_time = None
@@ -100,6 +106,11 @@ class Trace():
         self.critical_path = []
         self.visited = []
         self.fringe = []
+        self.mark = {}
+        self.javascript_type_list = ['application/x-javascript', 'application/javascript', 'application/ecmascript',
+                                     'text/javascript', 'text/ecmascript', 'application/json', 'javascript/text']
+        self.css_type_list = ['text/css', 'css/text']
+        self.text_type_list = ['evalhtml', 'text/html', 'text/plain', 'text/xml']
 
     ########################################################################################################################
     #   Output Logging
@@ -143,6 +154,76 @@ class Trace():
 
     def WriteRenderinglog(self, file):
         self.WriteJson(file, self.rendering)
+
+    def merge_dicts(self, *dict_args):
+        """
+        Given any number of dicts, shallow copy and merge into a new dict,
+        precedence goes to key value pairs in latter dicts.
+        """
+        result = {}
+        for dictionary in dict_args:
+            result.update(dictionary)
+        return result
+
+    def WriteOutputlog_new(self, file=None, mode='main'):
+        for _index, _value in enumerate(self.ordered):
+            _url_group = _value[0]
+            _node_Id_list = _value[1]
+            _tmp_list = []
+            for _nodeId in _node_Id_list:
+                _tmp_dict = {}
+                _tmp_merged_dict = {}
+                if _nodeId.startswith('Network'):
+                    _tmp_dict['activityId'] = _nodeId
+                    _tmp_merged_dict = self.merge_dicts(_tmp_dict, self.networks_lookup_id[_nodeId])
+                    _tmp_list.append(_tmp_merged_dict)
+
+                elif _nodeId.startswith('Load'):
+                    _tmp_dict['activityId'] = _nodeId
+                    _tmp_merged_dict = self.merge_dicts(_tmp_dict, self.loading[_nodeId])
+                    _tmp_list.append(_tmp_merged_dict)
+                elif _nodeId.startswith('Script'):
+                    _tmp_dict['activityId'] = _nodeId
+                    _tmp_merged_dict = self.merge_dicts(_tmp_dict, self.scripts_lookup_id[_nodeId])
+                    _tmp_list.append(_tmp_merged_dict)
+            self.output.append({'id': _url_group, 'objs': _tmp_list})
+
+        _tmp_r_list = []
+        for _index, _value in enumerate(self.rendering_list):
+            _nodeId = _value[0]
+            _tmp_dict['activityId'] = _nodeId
+            _nodeData = _value[1]
+            _tmp_merged_dict = self.merge_dicts(_tmp_dict, _nodeData)
+            _tmp_r_list.append(_tmp_merged_dict)
+
+        _tmp_p_list = []
+        for _index, _value in enumerate(self.painting_list):
+            _nodeId = _value[0]
+            _tmp_dict['activityId'] = _nodeId
+            _nodeData = _value[1]
+            _tmp_merged_dict = self.merge_dicts(_tmp_dict, _nodeData)
+            _tmp_p_list.append(_tmp_merged_dict)
+
+        _tmp_rendering = {'id': 'Rendering', 'objs': _tmp_r_list}
+        _tmp_painting = {'id': 'Painting', 'objs': _tmp_p_list}
+        _tmp_deps = {'id': 'Deps', 'objs': self.deps}
+
+        _tmp_netlog = {'id': 'Netlog', 'dns': self.netlog['dns'], 'sockets': self.netlog['sockets'],
+                       'dnsTime': self.netlog['dnsTime'], 'sockets_bytes_in': self.netlog['bytes_in'],
+                       'sockets_bytes_out': self.netlog['bytes_out'],
+                       'ssl_sockets_bytes_out': self.netlog['ssl_bytes_out'],
+                       'ssl_sockets_bytes_in': self.netlog['ssl_bytes_in']}
+        _tmp_critical_path = {'criticalPath': self.critical_path}
+
+        self.output.append(_tmp_rendering)
+        self.output.append(_tmp_painting)
+        self.output.append(_tmp_deps)
+        self.output.append(_tmp_netlog)
+        self.output.append(_tmp_critical_path)
+        if mode == 'main':
+            self.WriteJson(file, self.output)
+        elif mode == 'lib':
+            return self.output
 
     def WriteOutputlog(self, file=None, mode='main'):
         for _index, _value in enumerate(self.ordered):
@@ -223,12 +304,12 @@ class Trace():
                                 cat == 'blink,devtools.timeline' and name == 'ParseAuthorStyleSheet'):
                     self.loading_trace_events.append(trace_event)
                 ### removed to speed up plotting tests
-                """if (cat == 'disabled-by-default-devtools.timeline' or cat.find('devtools.timeline') >= 0) \
+                if (cat == 'disabled-by-default-devtools.timeline' or cat.find('devtools.timeline') >= 0) \
                         and name in ['CompositeLayers', 'Paint']:
                     self.painting_trace_events.append(trace_event)
                 if (cat == 'devtools.timeline' or cat.find('devtools.timeline') >= 0) \
                         and name in ['Layout', 'UpdateLayerTree', 'HitTest', 'RecalculateStyles']:
-                    self.rendering_trace_events.append(trace_event)"""
+                    self.rendering_trace_events.append(trace_event)
                 if cat == 'devtools.timeline' and \
                         (name in ['ResourceSendRequest', 'ResourceReceiveResponse', 'ResourceReceivedData',
                                   'ResourceFinish']):
@@ -398,7 +479,7 @@ class Trace():
                 if not 'net_error' in s['args']['params']:
                     self.netlog['dns'][s['id']]['dnsEnd'] = (s['ts'] - self.start_time) / 1000
                 elif s['id'] in self.netlog['dns']:
-                        del self.netlog['dns'][s['id']]
+                    del self.netlog['dns'][s['id']]
 
     def ProcessNetlogSocketEvent(self, s):
         if 'sockets' not in self.netlog:
@@ -470,13 +551,11 @@ class Trace():
     def ProcessNetworkEvents(self, network_trace_events):
         for net_trace in network_trace_events:
             _request_id = net_trace['args']['data']['requestId']
-
             if _request_id not in self.networks:
                 self.networks[_request_id] = {}
             if net_trace['name'] == 'ResourceSendRequest':
                 _url = net_trace['args']['data']['url']
                 _startTime = net_trace['ts']
-
                 self.networks[_request_id]['url'] = _url
                 self.networks[_request_id]['startTime'] = (_startTime - self.start_time) / 1000
 
@@ -497,7 +576,8 @@ class Trace():
 
             elif net_trace['name'] == 'ResourceReceivedData':
                 _encodedDataLength = net_trace['args']['data']['encodedDataLength']
-                self.networks[_request_id]['transferSize'] = _encodedDataLength
+                if _encodedDataLength != 0 or 'transferSize' not in self.networks[_request_id]:
+                    self.networks[_request_id]['transferSize'] = _encodedDataLength
 
             elif net_trace['name'] == 'ResourceFinish':
                 _endTime = net_trace['ts']
@@ -531,12 +611,7 @@ class Trace():
         load_list = []
         tmp_stack = []
         for loading_event in loading_trace_events:
-            try:
-                loading_event['ts'] = (loading_event['ts'] - self.start_time) / 1000
-            except:
-                print(self.start_time)
-                print(loading_event)
-                exit()
+            loading_event['ts'] = (loading_event['ts'] - self.start_time) / 1000
             if loading_event['ph'] == 'B' or loading_event['ph'] == 'E':
                 if loading_event['ph'] == 'B':
                     tmp_stack.append(loading_event)
@@ -904,7 +979,33 @@ class Trace():
     def find_ttbf(self):
         pass
 
-    def find_critical_path(self, source, download_0=None):
+    def find_cp_max_end(self, aList):
+        _max = -10
+        _max_id = None
+        for _tup in aList:
+            if _tup[1] > _max:
+                _max = _tup[1]
+                _max_id = _tup[0]
+        return _max_id
+
+
+    def find_critical_path_mod(self, source):
+        self.critical_path += [source]
+        if source in self.deps_parent:
+            source = self.find_cp_max_end(self.deps_parent_mod[source])
+            return self.find_critical_path_mod(source)
+        else:
+            return
+
+    def find_critical_path(self, source):
+        self.critical_path += [source]
+        if source in self.deps_parent:
+            source = self.find_cp_max_end(self.deps_parent[source])
+            return self.find_critical_path(source)
+        else:
+            return
+
+    def find_critical_path_old(self, source, download_0=None):
         # this version uses max prev trigger time. Need to consider duration.
         # Maybe we should switch from critical path (Longest endTimes) to the least idle critical path (Longest durations)
         # prev_list = self.G.in_edges(source, data=True)
@@ -945,7 +1046,10 @@ class Trace():
             unfragmented_url = urldefrag(self.networks_list[i][1]['url'])[0]
             if "localhost.localdomain" in unfragmented_url:
                 unfragmented_url = unfragmented_url.replace('localhost.localdomain/', '')
-            self.networks_lookup_url[unfragmented_url] = self.networks_list[i][0]
+            if not unfragmented_url in self.networks_lookup_url:
+                self.networks_lookup_url[unfragmented_url] = [self.networks_list[i][0]]
+            else:
+                self.networks_lookup_url[unfragmented_url].append(self.networks_list[i][0])
             self.networks_lookup_id['Networking_' + str(i)] = temp_net_list[1]
             temp_net_list = []
         self.loading_list = [[_id, load_dict] for _id, load_dict in self.loading.items()
@@ -953,23 +1057,25 @@ class Trace():
                              ('endTime' in load_dict and load_dict['endTime'] >= 0)]
 
         for t_id, t_dict in self.loading_list:
+            unfragmented_url = urldefrag(t_dict['url'])[0]
+            if unfragmented_url and 'localhost.localdomain' in unfragmented_url:
+                unfragmented_url = unfragmented_url.replace('localhost.localdomain/', '')
+            if not unfragmented_url in self.loading_lookup_url:
+                self.loading_lookup_url[unfragmented_url] = [t_id]
+            else:
+                self.loading_lookup_url[unfragmented_url].append(t_id)
             self.loading_lookup_id[t_id] = t_dict
             if t_dict['endTime'] > max_load_time[0][1]:
                 max_load_time[0][1] = t_dict['endTime']
                 max_load_time[0][0] = t_id
         self.loading_list = sorted(self.loading_list, key=lambda tup: tup[1]['startTime'])
-        try:
-            _main_thread = self.scripts['main_thread']
-        except Exception as e:
-            print(e)
-            print(self.trace)
-            exit()
+        _main_thread = self.scripts['main_thread']
         scripts2 = self.scripts[str(_main_thread)]
         for _id, script_dict in scripts2.items():
             if ('EvaluateScript' in script_dict and len(script_dict['EvaluateScript'])) > 0:
                 for j in range(len(script_dict['EvaluateScript'])):
-                    self.scripts_list.append([_id, {'startTime':script_dict['EvaluateScript'][j][0],
-                                             'endTime': script_dict['EvaluateScript'][j][1]}])
+                    self.scripts_list.append([_id, {'startTime': script_dict['EvaluateScript'][j][0],
+                                                    'endTime': script_dict['EvaluateScript'][j][1]}])
 
             """if ('EvaluateScript' in script_dict and 'startTime' in script_dict['EvaluateScript'] and
                         script_dict['EvaluateScript']['startTime'] >= 0) and \
@@ -989,7 +1095,12 @@ class Trace():
             unfragmented_url = urldefrag(self.scripts_list[i][1]['url'])[0]
             if "localhost.localdomain" in unfragmented_url:
                 unfragmented_url = unfragmented_url.replace('localhost.localdomain/', '')
-            self.scripts_lookup_url[unfragmented_url] = 'Scripting_' + str(i)
+            if not unfragmented_url in self.scripts_lookup_url:
+                self.scripts_lookup_url[unfragmented_url] = ['Scripting_' + str(i)]
+            else:
+                self.scripts_lookup_url[unfragmented_url].append('Scripting_' + str(i))
+
+            # self.scripts_lookup_url[unfragmented_url] = 'Scripting_' + str(i)
             self.scripts_lookup_id['Scripting_' + str(i)] = self.scripts_list[i][1]
             if self.scripts_list[i][1]['endTime'] > max_script_time[0][1]:
                 max_script_time[0][1] = self.scripts_list[i][1]['endTime']
@@ -1009,7 +1120,11 @@ class Trace():
         self.all = sorted(self.all, key=lambda tup: tup[1]['startTime'])
         for obj in self.all:
             self.all_startTime_lookup[obj[0]] = obj[1]['startTime']
-
+        self.all_modified = copy.deepcopy(self.all)
+        for _item in self.all:
+            self.all_dict[_item[0]] = _item[1]
+        for _item in self.all_modified:
+            self.all_modified_dict[_item[0]] = _item[1]
         _tmp_merged = max_net_time + max_load_time + max_script_time
         self.last_activity = sorted(_tmp_merged, key=lambda tup: tup[1], reverse=True)
         # print(_tmp_merged)
@@ -1063,14 +1178,13 @@ class Trace():
         for _index, _item in enumerate(self.ordered):
             for _sitem in _item[1]:
                 _order_lookup[_sitem] = _index
-        download_0, parse_0 = self.find_download0()
-        self.find_critical_path(self.last_activity[0][0])  # , download_0[0])
-        self.critical_path.reverse()
-        # print('Critical Path: ' + str(self.critical_path))
+
         _plot = waterfall_draw.DrawWaterfall(_resJson, _outf, _lookup_dict, _order_lookup)
-        _plot.draw_from_json()
+        #_plot = waterfall_draw.DrawWaterfall(_resJson, _outf, _lookup_dict, _order_lookup, self.all_modified_dict)
+        # _plot.draw_from_json()
+        _plot.draw_from_json_new()
         _plot.draw_critical_path(self.critical_path)
-        _plot.draw_all_dependency()
+        #_plot.draw_all_dependency()
         _plot.showPlot()
 
     def CreateGraph(self):
@@ -1108,6 +1222,74 @@ class Trace():
             wr2 = csv.writer(myfile2, quoting=csv.QUOTE_ALL)
             wr2.writerow(_nodes)
 
+    def find_url(self, _url, activitiy_data, _type):
+        activity_startTime = activitiy_data['startTime']
+        activity_endTime = activitiy_data['endTime']
+        selected = ['', float('inf')]
+        if _type == 'network':
+            for net_id in self.networks_lookup_url[_url]:
+                net_startTime = self.networks_list[int(net_id.split('_')[1])][1]['startTime']
+                net_endTime = self.networks_list[int(net_id.split('_')[1])][1]['endTime']
+                if activity_startTime > net_startTime and activity_endTime > net_endTime:
+                    diff = abs(activity_startTime - net_endTime)
+                    if diff < selected[1]:
+                        selected = [net_id, diff]
+            return selected[0]
+        elif _type == 'script':
+            # print(self.scripts_lookup_url[_url])
+            for s_id in self.scripts_lookup_url[_url]:
+                _startTime = self.scripts_list[int(s_id.split('_')[1])][1]['startTime']
+                _endTime = self.scripts_list[int(s_id.split('_')[1])][1]['endTime']
+                # print(_startTime, _endTime)
+                if activity_startTime > _startTime:
+                    diff = abs(activity_startTime - _endTime)
+                    if diff < selected[1]:
+                        selected = [s_id, diff]
+            if selected[0] == '':
+                print('script', self.scripts_lookup_url[_url], _startTime, _endTime, _url, activitiy_data)
+                exit()
+            return selected[0]
+
+    # Find latest parse HTML before activity
+    def find_parse_id(self, activitiy_data):
+        activity_startTime = activitiy_data['startTime']
+        selected = ['', float('inf')]
+        for loadings in self.loading_list:
+            load_id = loadings[0]
+            load_data = loadings[1]
+            load_name = load_data['name']
+            if load_name.startswith('ParseHTML'):
+                _startTime = load_data['startTime']
+                _endTime = load_data['endTime']
+                _url = load_data['url']
+                if _url not in ['', 'about:blank'] and activity_startTime > _startTime:
+                    diff = abs(activity_startTime - _endTime)
+                    if diff < selected[1]:
+                        selected = [load_id, diff]
+        if selected[0] in ['', None]:
+            print(selected[0], activitiy_data)
+            exit()
+        return selected[0]
+
+    # Find latest scripting before parsing
+    def find_scripting_id(self, activitiy_data):
+        activity_startTime = activitiy_data['startTime']
+        selected = ['', float('inf')]
+        for scriptings in self.scripts_list:
+            script_id = scriptings[0]
+            script_data = scriptings[1]
+            _startTime = script_data['startTime']
+            _endTime = script_data['endTime']
+            _url = script_data['url']
+            if _url not in ['', 'about:blank'] and activity_startTime > _startTime:
+                diff = abs(activity_startTime - _endTime)
+                if diff < selected[1]:
+                    selected = [script_id, diff]
+        if selected[0] in ['', None]:
+            print(selected[0], activitiy_data)
+            return None
+        return selected[0]
+
     def dependency(self):
         if not self.CreateGraph():
             return False
@@ -1121,23 +1303,38 @@ class Trace():
                         startTime=a2_startTime,
                         endTime=self.G.node[_parse0Id]['startTime'])
         self.deps.append({'time': a1_triggered, 'a1': _download0Id, 'a2': _parse0Id})
-        self.deps_parent.setdefault(_parse0Id, []).append(_download0Id)
+        if a1_triggered == -1:
+            a1_triggered = self.G.node[_download0Id]['endTime']
+        self.deps_parent.setdefault(_parse0Id, []).append((_download0Id, a1_triggered))
         for obj in self.all:
             _nodeId = obj[0]
             _nodeData = obj[1]
+            ###
+            #  Add find_url like scheme for netwoorks which are null
+            ###
             if _nodeId.startswith('Networking') or _nodeId.startswith('Loading') or _nodeId.startswith('Scripting'):
                 if _nodeId.startswith('Networking'):
-                    if _nodeData['fromScript'] in ['Null', None] and _nodeData['startTime'] > self.G.node[_parse0Id][
-                        'startTime']:
-                        a2_startTime, a1_triggered = self.edge_start(self.G.node[_parse0Id]['endTime'],
+                    if _nodeData['fromScript'] in ['Null', None, ''] and _nodeData['startTime'] > \
+                            self.G.node[_parse0Id][
+                                'startTime']:
+                        _parseID = self.find_parse_id(_nodeData)
+                        if _parseID in ['', None]:
+                            _parseID = _parse0Id
+                        a2_startTime, a1_triggered = self.edge_start(self.G.node[_parseID]['endTime'],
                                                                      self.G.node[_nodeId]['startTime'])
-                        self.G.add_edge(_parse0Id, _nodeId,
+                        self.G.add_edge(_parseID, _nodeId,
                                         startTime=a2_startTime,
                                         endTime=self.G.node[_nodeId]['startTime'])
-                        self.deps.append({'time': a1_triggered, 'a1': _parse0Id, 'a2': _nodeId})
-                        self.deps_parent.setdefault(_nodeId, []).append(_parse0Id)
+                        self.deps.append({'time': a1_triggered, 'a1': _parseID, 'a2': _nodeId})
+                        if a1_triggered == -1:
+                            a1_triggered = self.G.node[_parseID]['endTime']
+                        self.deps_parent.setdefault(_nodeId, []).append((_parseID, a1_triggered))
                     elif _nodeData['fromScript'] not in ['Null', None, '']:
-                        _script_nodeId = self.scripts_lookup_url[urldefrag(_nodeData['fromScript'])[0]]
+                        if len(self.scripts_lookup_url[urldefrag(_nodeData['fromScript'])[0]]) <= 1:
+                            _script_nodeId = self.scripts_lookup_url[urldefrag(_nodeData['fromScript'])[0]][0]
+                        else:
+                            _script_nodeId = self.find_url(urldefrag(_nodeData['fromScript'])[0], _nodeData, 'script')
+                        # _script_nodeId = self.scripts_lookup_url[urldefrag(_nodeData['fromScript'])[0]]
                         _script_nodeData = self.scripts_list[int(_script_nodeId.split('_')[1])][1]
                         # There is a js before _nodeId
                         if _script_nodeData['startTime'] < self.G.node[_nodeId]['startTime']:
@@ -1147,11 +1344,16 @@ class Trace():
                                             startTime=a2_startTime,
                                             endTime=self.G.node[_nodeId]['startTime'])
                             self.deps.append({'time': a1_triggered, 'a1': _script_nodeId, 'a2': _nodeId})
-                            self.deps_parent.setdefault(_nodeId, []).append(_script_nodeId)
+                            if a1_triggered == -1:
+                                a1_triggered = self.G.node[_script_nodeId]['endTime']
+                            self.deps_parent.setdefault(_nodeId, []).append((_script_nodeId, a1_triggered))
 
                 elif _nodeId.startswith('Scripting'):
                     # find related networking for each js eval.
-                    _netowrk_nodeId = self.networks_lookup_url[urldefrag(_nodeData['url'])[0]]
+                    if len(self.networks_lookup_url[urldefrag(_nodeData['url'])[0]]) <= 1:
+                        _netowrk_nodeId = self.networks_lookup_url[urldefrag(_nodeData['url'])[0]][0]
+                    else:
+                        _netowrk_nodeId = self.find_url(urldefrag(_nodeData['url'])[0], _nodeData, 'network')
                     _netowrk_nodeData = self.networks_list[int(_netowrk_nodeId.split('_')[1])][1]
                     if _netowrk_nodeData['startTime'] < self.G.node[_nodeId]['startTime']:
                         a2_startTime, a1_triggered = self.edge_start(self.G.node[_netowrk_nodeId]['endTime'],
@@ -1160,12 +1362,18 @@ class Trace():
                                         startTime=a2_startTime,
                                         endTime=self.G.node[_nodeId]['startTime'])
                         self.deps.append({'time': a1_triggered, 'a1': _netowrk_nodeId, 'a2': _nodeId})
-                        self.deps_parent.setdefault(_nodeId, []).append(_netowrk_nodeId)
+                        if a1_triggered == -1:
+                            a1_triggered = self.G.node[_netowrk_nodeId]['endTime']
+                        self.deps_parent.setdefault(_nodeId, []).append((_netowrk_nodeId, a1_triggered))
 
                 elif _nodeId.startswith('Loading'):
                     if _nodeData['name'] == 'ParseAuthorStyleSheet':
                         try:
-                            _netowrk_nodeId = self.networks_lookup_url[urldefrag(_nodeData['styleSheetUrl'])[0]]
+                            if len(self.networks_lookup_url[urldefrag(_nodeData['styleSheetUrl'])[0]]) <= 1:
+                                _netowrk_nodeId = self.networks_lookup_url[urldefrag(_nodeData['styleSheetUrl'])[0]][0]
+                            else:
+                                _netowrk_nodeId = self.find_url(urldefrag(_nodeData['styleSheetUrl'])[0], _nodeData,
+                                                                'network')
                         except Exception as e:
                             print(e)
                             continue
@@ -1177,15 +1385,20 @@ class Trace():
                                             startTime=a2_startTime,
                                             endTime=self.G.node[_nodeId]['startTime'])
                             self.deps.append({'time': a1_triggered, 'a1': _netowrk_nodeId, 'a2': _nodeId})
-                            self.deps_parent.setdefault(_nodeId, []).append(_netowrk_nodeId)
+                            if a1_triggered == -1:
+                                a1_triggered = self.G.node[_netowrk_nodeId]['endTime']
+                            self.deps_parent.setdefault(_nodeId, []).append((_netowrk_nodeId, a1_triggered))
 
                     elif _nodeData['name'] == 'ParseHTML' and _nodeData['fromScript'] in ['Null', None, '']:
                         ### TODO: Javad
                         # We are currently skipping about:blanks which occur before parse_0
                         # Update: no need if a clean start happens in testbed.
                         ###
-                        if _nodeData['startTime'] > self.G.node[_parse0Id]['startTime'] and not _nodeData['url'] =='' :
-                            _netowrk_nodeId = self.networks_lookup_url[urldefrag(_nodeData['url'])[0]]
+                        if _nodeData['startTime'] > self.G.node[_parse0Id]['startTime'] and not _nodeData['url'] == '':
+                            if len(self.networks_lookup_url[urldefrag(_nodeData['url'])[0]]) <= 1:
+                                _netowrk_nodeId = self.networks_lookup_url[urldefrag(_nodeData['url'])[0]][0]
+                            else:
+                                _netowrk_nodeId = self.find_url(urldefrag(_nodeData['url'])[0], _nodeData, 'network')
                             _netowrk_nodeData = self.networks_list[int(_netowrk_nodeId.split('_')[1])][1]
                             a2_startTime, a1_triggered = self.edge_start(self.G.node[_netowrk_nodeId]['endTime'],
                                                                          self.G.node[_nodeId]['startTime'])
@@ -1193,12 +1406,49 @@ class Trace():
                                             startTime=a2_startTime,
                                             endTime=self.G.node[_nodeId]['startTime'])
                             self.deps.append({'time': a1_triggered, 'a1': _netowrk_nodeId, 'a2': _nodeId})
-                            self.deps_parent.setdefault(_nodeId, []).append(_netowrk_nodeId)
+                            if a1_triggered == -1:
+                                a1_triggered = self.G.node[_netowrk_nodeId]['endTime']
+                            self.deps_parent.setdefault(_nodeId, []).append((_netowrk_nodeId, a1_triggered))
+                            ###
+                            # find latest scripting too
+                            ###
+                            _script_nodeId = self.find_scripting_id(_nodeData)
+                            if _script_nodeId is not None:
+                                a2_startTime, a1_triggered = self.edge_start(self.G.node[_script_nodeId]['endTime'],
+                                                                             self.G.node[_nodeId]['startTime'])
+                                self.G.add_edge(_script_nodeId, _nodeId,
+                                                startTime=a2_startTime,
+                                                endTime=self.G.node[_nodeId]['startTime'])
+                                self.deps.append({'time': a1_triggered, 'a1': _script_nodeId, 'a2': _nodeId})
+                                if a1_triggered == -1:
+                                    a1_triggered = self.G.node[_script_nodeId]['endTime']
+                                self.deps_parent.setdefault(_nodeId, []).append((_script_nodeId, a1_triggered))
+
+                            ###
+                            # Find latest parsHTML too
+                            ###
+                            _parseID = self.find_parse_id(_nodeData)
+                            if _parseID in ['', None]:
+                                _parseID = _parse0Id
+                            a2_startTime, a1_triggered = self.edge_start(self.G.node[_parseID]['endTime'],
+                                                                         self.G.node[_nodeId]['startTime'])
+                            self.G.add_edge(_parseID, _nodeId,
+                                            startTime=a2_startTime,
+                                            endTime=self.G.node[_nodeId]['startTime'])
+                            self.deps.append({'time': a1_triggered, 'a1': _parseID, 'a2': _nodeId})
+                            if a1_triggered == -1:
+                                a1_triggered = self.G.node[_parseID]['endTime']
+                            self.deps_parent.setdefault(_nodeId, []).append((_parseID, a1_triggered))
+
                         else:
                             pass
 
                     elif _nodeData['name'] == 'ParseHTML' and _nodeData['fromScript'] not in ['Null', None, '']:
-                        _script_nodeId = self.scripts_lookup_url[urldefrag(_nodeData['fromScript'])[0]]
+                        # _script_nodeId = self.scripts_lookup_url[urldefrag(_nodeData['fromScript'])[0]]
+                        if len(self.scripts_lookup_url[urldefrag(_nodeData['fromScript'])[0]]) <= 1:
+                            _script_nodeId = self.scripts_lookup_url[urldefrag(_nodeData['fromScript'])[0]][0]
+                        else:
+                            _script_nodeId = self.find_url(urldefrag(_nodeData['fromScript'])[0], _nodeData, 'script')
                         _script_nodeData = self.scripts_list[int(_script_nodeId.split('_')[1])][1]
                         # There is a js before _nodeId
                         if _script_nodeData['startTime'] < self.G.node[_nodeId]['startTime']:
@@ -1208,12 +1458,12 @@ class Trace():
                                             startTime=a2_startTime,
                                             endTime=self.G.node[_nodeId]['startTime'])
                             self.deps.append({'time': a1_triggered, 'a1': _script_nodeId, 'a2': _nodeId})
-                            self.deps_parent.setdefault(_nodeId, []).append(_script_nodeId)
+                            if a1_triggered == -1:
+                                a1_triggered = self.G.node[_script_nodeId]['endTime']
+                            self.deps_parent.setdefault(_nodeId, []).append((_script_nodeId, a1_triggered))
+        self.deps_modified = copy.deepcopy(self.deps)
         return True
         # print(self.G.nodes(data=True))
-        """for v in self.deps:
-            print(v)
-        print('dep length: ', len(self.deps))"""
         # self.toGephiCsv('zdnet')
         # simpleNetworkx(self.G)
 
@@ -1242,102 +1492,264 @@ class Trace():
         #
         #
 
-    def dependency_pass2(self):
-        ########  Output Dependencies
-        #1- test: the last activity should be loading/networking not scripting
-        # Parsing the next tag → Completion of a previous JavaScript download and evaluation
-        # JavaScript evaluation → Completion of a previous CSS evaluation
-        # Parsing the next tag → Completion of a previous CSS download and evaluation
-        #########
-        _parse0Id = self.G.graph['parse_0']
-        for obj in self.all:
-            _nodeId = obj[0]
-            _nodeData = obj[1]
-            if _nodeId.startswith('Networking') or _nodeId.startswith('Loading') or _nodeId.startswith('Scripting'):
-                if _nodeId.startswith('Networking'):
-                    if _nodeData['fromScript'] in ['Null', None, ''] and _nodeData['startTime'] > self.G.node[_parse0Id][
-                        'startTime']:
-                        a2_startTime, a1_triggered = self.edge_start(self.G.node[_parse0Id]['endTime'],
-                                                                     self.G.node[_nodeId]['startTime'])
-                        self.G.add_edge(_parse0Id, _nodeId,
-                                        startTime=a2_startTime,
-                                        endTime=self.G.node[_nodeId]['startTime'])
-                        self.deps.append({'time': a1_triggered, 'a1': _parse0Id, 'a2': _nodeId})
-                        self.deps_parent.setdefault(_nodeId, []).append(_parse0Id)
-                    elif _nodeData['fromScript'] not in ['Null', None, '']:
-                        _script_nodeId = self.scripts_lookup_url[urldefrag(_nodeData['fromScript'])[0]]
-                        _script_nodeData = self.scripts_list[int(_script_nodeId.split('_')[1])][1]
-                        # There is a js before _nodeId
-                        if _script_nodeData['startTime'] < self.G.node[_nodeId]['startTime']:
-                            a2_startTime, a1_triggered = self.edge_start(self.G.node[_script_nodeId]['endTime'],
-                                                                         self.G.node[_nodeId]['startTime'])
-                            self.G.add_edge(_script_nodeId, _nodeId,
-                                            startTime=a2_startTime,
-                                            endTime=self.G.node[_nodeId]['startTime'])
-                            self.deps.append({'time': a1_triggered, 'a1': _script_nodeId, 'a2': _nodeId})
-                            self.deps_parent.setdefault(_nodeId, []).append(_script_nodeId)
+    ###################################################################################################
+    #  What-if analysis --begins
+    ###################################################################################################
+    def WriteOutputlog_modified(self, file=None, mode='main'):
+        self._outputModified = copy.deepcopy(self.output)
+        for _index, _value in enumerate(self.ordered):
+            _url_group = _value[0]
+            _node_Id_list = _value[1]
+            _tmp_list = []
+            for _nodeId in _node_Id_list:
+                _tmp_dict = {}
+                if _nodeId.startswith('Network'):
+                    _tmp_dict['activityId'] = _nodeId
+                    ### Add new stime and etime here.
+                    _tmp_merged_dict = self.merge_dicts(_tmp_dict, self.networks_lookup_id[_nodeId])
+                    _tmp_merged_dict['startTime'] = self.all_modified_dict[_nodeId]['startTime']
+                    _tmp_merged_dict['endTime'] = self.all_modified_dict[_nodeId]['endTime']
 
-                elif _nodeId.startswith('Scripting'):
-                    # find related networking for each js eval.
-                    _netowrk_nodeId = self.networks_lookup_url[urldefrag(_nodeData['url'])[0]]
-                    _netowrk_nodeData = self.networks_list[int(_netowrk_nodeId.split('_')[1])][1]
-                    if _netowrk_nodeData['startTime'] < self.G.node[_nodeId]['startTime']:
-                        a2_startTime, a1_triggered = self.edge_start(self.G.node[_netowrk_nodeId]['endTime'],
-                                                                     self.G.node[_nodeId]['startTime'])
-                        self.G.add_edge(_netowrk_nodeId, _nodeId,
-                                        startTime=a2_startTime,
-                                        endTime=self.G.node[_nodeId]['startTime'])
-                        self.deps.append({'time': a1_triggered, 'a1': _netowrk_nodeId, 'a2': _nodeId})
-                        self.deps_parent.setdefault(_nodeId, []).append(_netowrk_nodeId)
+                    _tmp_list.append(_tmp_merged_dict)
+                elif _nodeId.startswith('Load'):
+                    _tmp_dict['activityId'] = _nodeId
+                    _tmp_merged_dict = self.merge_dicts(_tmp_dict, self.loading[_nodeId])
+                    _tmp_list.append(_tmp_merged_dict)
+                    _tmp_merged_dict['startTime'] = self.all_modified_dict[_nodeId]['startTime']
+                    _tmp_merged_dict['endTime'] = self.all_modified_dict[_nodeId]['endTime']
+                elif _nodeId.startswith('Script'):
+                    _tmp_dict['activityId'] = _nodeId
+                    _tmp_merged_dict = self.merge_dicts(_tmp_dict, self.scripts_lookup_id[_nodeId])
+                    _tmp_list.append(_tmp_merged_dict)
+                    _tmp_merged_dict['startTime'] = self.all_modified_dict[_nodeId]['startTime']
+                    _tmp_merged_dict['endTime'] = self.all_modified_dict[_nodeId]['endTime']
+            self.output.append({'id': _url_group, 'objs': _tmp_list})
 
-                elif _nodeId.startswith('Loading'):
-                    if _nodeData['name'] == 'ParseAuthorStyleSheet':
-                        try:
-                            _netowrk_nodeId = self.networks_lookup_url[urldefrag(_nodeData['styleSheetUrl'])[0]]
-                        except Exception as e:
-                            print(e)
-                            continue
-                        _netowrk_nodeData = self.networks_list[int(_netowrk_nodeId.split('_')[1])][1]
-                        if _netowrk_nodeData['startTime'] < self.G.node[_nodeId]['startTime']:
-                            a2_startTime, a1_triggered = self.edge_start(self.G.node[_netowrk_nodeId]['endTime'],
-                                                                         self.G.node[_nodeId]['startTime'])
-                            self.G.add_edge(_netowrk_nodeId, _nodeId,
-                                            startTime=a2_startTime,
-                                            endTime=self.G.node[_nodeId]['startTime'])
-                            self.deps.append({'time': a1_triggered, 'a1': _netowrk_nodeId, 'a2': _nodeId})
-                            self.deps_parent.setdefault(_nodeId, []).append(_netowrk_nodeId)
+        _tmp_r_list = []
+        for _index, _value in enumerate(self.rendering_list):
+            _nodeId = _value[0]
+            _tmp_dict['activityId'] = _nodeId
+            _nodeData = _value[1]
+            _tmp_merged_dict = self.merge_dicts(_tmp_dict, _nodeData)
+            _tmp_r_list.append(_tmp_merged_dict)
 
-                    elif _nodeData['name'] == 'ParseHTML' and _nodeData['fromScript'] in ['Null', None, '']:
-                        ### TODO: Javad
-                        # We are currently skipping about:blanks which occur before parse_0
-                        # Update: no need if a clean start happens in testbed.
-                        ###
-                        if _nodeData['startTime'] > self.G.node[_parse0Id]['startTime'] and not _nodeData['url'] =='' :
-                            _netowrk_nodeId = self.networks_lookup_url[urldefrag(_nodeData['url'])[0]]
-                            _netowrk_nodeData = self.networks_list[int(_netowrk_nodeId.split('_')[1])][1]
-                            a2_startTime, a1_triggered = self.edge_start(self.G.node[_netowrk_nodeId]['endTime'],
-                                                                         self.G.node[_nodeId]['startTime'])
-                            self.G.add_edge(_netowrk_nodeId, _nodeId,
-                                            startTime=a2_startTime,
-                                            endTime=self.G.node[_nodeId]['startTime'])
-                            self.deps.append({'time': a1_triggered, 'a1': _netowrk_nodeId, 'a2': _nodeId})
-                            self.deps_parent.setdefault(_nodeId, []).append(_netowrk_nodeId)
-                        else:
-                            pass
+        _tmp_p_list = []
+        for _index, _value in enumerate(self.painting_list):
+            _nodeId = _value[0]
+            _tmp_dict['activityId'] = _nodeId
+            _nodeData = _value[1]
+            _tmp_merged_dict = self.merge_dicts(_tmp_dict, _nodeData)
+            _tmp_p_list.append(_tmp_merged_dict)
 
-                    elif _nodeData['name'] == 'ParseHTML' and _nodeData['fromScript'] not in ['Null', None, '']:
-                        _script_nodeId = self.scripts_lookup_url[urldefrag(_nodeData['fromScript'])[0]]
-                        _script_nodeData = self.scripts_list[int(_script_nodeId.split('_')[1])][1]
-                        # There is a js before _nodeId
-                        if _script_nodeData['startTime'] < self.G.node[_nodeId]['startTime']:
-                            a2_startTime, a1_triggered = self.edge_start(self.G.node[_script_nodeId]['endTime'],
-                                                                         self.G.node[_nodeId]['startTime'])
-                            self.G.add_edge(_script_nodeId, _nodeId,
-                                            startTime=a2_startTime,
-                                            endTime=self.G.node[_nodeId]['startTime'])
-                            self.deps.append({'time': a1_triggered, 'a1': _script_nodeId, 'a2': _nodeId})
-                            self.deps_parent.setdefault(_nodeId, []).append(_script_nodeId)
-        return True
+        _tmp_rendering = {'id': 'Rendering', 'objs': _tmp_r_list}
+        _tmp_painting = {'id': 'Painting', 'objs': _tmp_r_list}
+        _tmp_deps = {'id': 'Deps', 'objs': self.deps_modified}
+
+        _tmp_netlog = {'id': 'Netlog', 'dns': self.netlog['dns'], 'sockets': self.netlog['sockets'],
+                       'dnsTime': self.netlog['dnsTime'], 'sockets_bytes_in': self.netlog['bytes_in'],
+                       'sockets_bytes_out': self.netlog['bytes_out'],
+                       'ssl_sockets_bytes_out': self.netlog['ssl_bytes_out'],
+                       'ssl_sockets_bytes_in': self.netlog['ssl_bytes_in']}
+        _tmp_critical_path = {'criticalPath': self.critical_path}
+
+        self.output.append(_tmp_rendering)
+        self.output.append(_tmp_painting)
+        self.output.append(_tmp_deps)
+        self.output.append(_tmp_netlog)
+        self.output.append(_tmp_critical_path)
+        if mode == 'main':
+            self.WriteJson(file, self.output)
+        elif mode == 'lib':
+            return self.output
+
+    def update_nodeData(self, _nodeId, _delta, _function):
+        self.all_modified_dict[_nodeId]['startTime'] -= _delta
+        self.all_modified_dict[_nodeId]['endTime'] -= _delta
+        self.all_modified_dict[_nodeId]['endTime'] = _function(_nodeId)
+
+    def _compression(self, _nodeId):
+        _startTime = self.all_modified_dict[_nodeId]['startTime']
+        _endTime = self.all_modified_dict[_nodeId]['endTime']
+        if _nodeId.startswith('Networking') and _nodeId not in self.mark:
+            _mimeType = self.all_modified_dict[_nodeId]['mimeType']
+            #_compressable = self.javascript_type_list + self.css_type_list + self.text_type_list
+            _compressable = self.javascript_type_list
+            if _mimeType in _compressable:
+                return _startTime + ((_endTime - _startTime) / 15.7)
+        return _endTime
+
+    def _caching(self, _nodeId):
+        _startTime = self.all_modified_dict[_nodeId]['startTime']
+        _endTime = self.all_modified_dict[_nodeId]['endTime']
+        if _nodeId.startswith('Networking') and _nodeId not in self.mark:
+            _mimeType = self.all_modified_dict[_nodeId]['mimeType']
+            if _mimeType.startswith('image'):
+                print(_nodeId)
+                return _startTime + 2
+        return _endTime
+
+    def isAd(self, _url):
+        if _url is  None or 'testbed01' in _url:
+            return False
+        ads_domain = ['doubleclick.net', 'googlesyndication.com']
+        s = tldextract.extract(_url)
+        _domain = s.domain
+        _suffix = s.suffix
+        _subdomain = s.subdomain
+        _d = _domain + '.' + _suffix
+        print(_d)
+        if _d in ads_domain:
+            return True
+        return False
+        # ExtractResult(subdomain='www', domain='worldbank', suffix='org.kg')
+
+    def WriteOutputlog_ads(self, file=None, mode='main'):
+        adS_id_list = []
+        self._outputModified = copy.deepcopy(self.output)
+        for _index, _value in enumerate(self.ordered):
+            _url_group = _value[0]
+            _node_Id_list = _value[1]
+            _tmp_list = []
+            for _nodeId in _node_Id_list:
+                _tmp_dict = {}
+                _tmp_dict['url'] = self.all_modified_dict[_nodeId]['url']
+                if self.isAd(_tmp_dict['url']) or _nodeId in ['Networking_9', 'Loading_7']:
+                    adS_id_list.append(_nodeId)
+                    continue
+                if _nodeId.startswith('Network'):
+                    _tmp_dict['activityId'] = _nodeId
+                    ### Add new stime and etime here.
+                    _tmp_merged_dict = self.merge_dicts(_tmp_dict, self.networks_lookup_id[_nodeId])
+                    _tmp_merged_dict['startTime'] = self.all_modified_dict[_nodeId]['startTime']
+                    _tmp_merged_dict['endTime'] = self.all_modified_dict[_nodeId]['endTime']
+
+                    _tmp_list.append(_tmp_merged_dict)
+                elif _nodeId.startswith('Load'):
+                    _tmp_dict['activityId'] = _nodeId
+                    _tmp_merged_dict = self.merge_dicts(_tmp_dict, self.loading[_nodeId])
+                    _tmp_list.append(_tmp_merged_dict)
+                    _tmp_merged_dict['startTime'] = self.all_modified_dict[_nodeId]['startTime']
+                    _tmp_merged_dict['endTime'] = self.all_modified_dict[_nodeId]['endTime']
+                elif _nodeId.startswith('Script'):
+                    _tmp_dict['activityId'] = _nodeId
+                    _tmp_merged_dict = self.merge_dicts(_tmp_dict, self.scripts_lookup_id[_nodeId])
+                    _tmp_list.append(_tmp_merged_dict)
+                    _tmp_merged_dict['startTime'] = self.all_modified_dict[_nodeId]['startTime']
+                    _tmp_merged_dict['endTime'] = self.all_modified_dict[_nodeId]['endTime']
+            self.output.append({'id': _url_group, 'objs': _tmp_list})
+
+        _tmp_r_list = []
+        for _index, _value in enumerate(self.rendering_list):
+            continue
+            _nodeId = _value[0]
+            _tmp_dict['activityId'] = _nodeId
+            _nodeData = _value[1]
+            _tmp_merged_dict = self.merge_dicts(_tmp_dict, _nodeData)
+            _tmp_r_list.append(_tmp_merged_dict)
+
+        _tmp_p_list = []
+        for _index, _value in enumerate(self.painting_list):
+            continue
+            _nodeId = _value[0]
+            _tmp_dict['activityId'] = _nodeId
+            _nodeData = _value[1]
+            _tmp_merged_dict = self.merge_dicts(_tmp_dict, _nodeData)
+            _tmp_p_list.append(_tmp_merged_dict)
+
+        _tmp_rendering = {'id': 'Rendering', 'objs': _tmp_r_list}
+        _tmp_painting = {'id': 'Painting', 'objs': _tmp_r_list}
+        for i, _obj in enumerate(self.deps_modified):
+            if _obj['a1'] in adS_id_list or _obj['a1'] in adS_id_list:
+                del self.deps_modified[i]
+        _tmp_deps = {'id': 'Deps', 'objs': self.deps_modified}
+
+        _tmp_netlog = {'id': 'Netlog', 'dns': self.netlog['dns'], 'sockets': self.netlog['sockets'],
+                       'dnsTime': self.netlog['dnsTime'], 'sockets_bytes_in': self.netlog['bytes_in'],
+                       'sockets_bytes_out': self.netlog['bytes_out'],
+                       'ssl_sockets_bytes_out': self.netlog['ssl_bytes_out'],
+                       'ssl_sockets_bytes_in': self.netlog['ssl_bytes_in']}
+        _tmp_critical_path = {'criticalPath': self.critical_path}
+
+        self.output.append(_tmp_rendering)
+        self.output.append(_tmp_painting)
+        self.output.append(_tmp_deps)
+        self.output.append(_tmp_netlog)
+        self.output.append(_tmp_critical_path)
+        #self.critical_path = ['Networking_0', 'Loading_0', 'Networking_3', 'Scripting_0', 'Loading_2', 'Networking_5']
+        if mode == 'main':
+            self.WriteJson(file, self.output)
+        elif mode == 'lib':
+            return self.output
+
+    def update_nodeData(self, _nodeId, _delta, _function):
+        self.all_modified_dict[_nodeId]['startTime'] -= _delta
+        self.all_modified_dict[_nodeId]['endTime'] -= _delta
+        self.all_modified_dict[_nodeId]['endTime'] = _function(_nodeId)
+
+    def _compression(self, _nodeId):
+        _startTime = self.all_modified_dict[_nodeId]['startTime']
+        _endTime = self.all_modified_dict[_nodeId]['endTime']
+        if _nodeId.startswith('Networking') and _nodeId not in self.mark:
+            _mimeType = self.all_modified_dict[_nodeId]['mimeType']
+            #_compressable = self.javascript_type_list + self.css_type_list + self.text_type_list
+            _compressable = self.javascript_type_list
+            if _mimeType in _compressable:
+                return _startTime + ((_endTime - _startTime) / 15.7)
+        return _endTime
+
+    def _caching(self, _nodeId):
+        _startTime = self.all_modified_dict[_nodeId]['startTime']
+        _endTime = self.all_modified_dict[_nodeId]['endTime']
+        if _nodeId.startswith('Networking') and _nodeId not in self.mark:
+            _mimeType = self.all_modified_dict[_nodeId]['mimeType']
+            if _mimeType.startswith('image'):
+                print(_nodeId)
+                return _startTime + 2
+        return _endTime
+
+
+    def shift_time(self, _nodeId, _function):
+        if _nodeId not in self.deps_parent:  # Orphans
+            self.all_modified_dict[_nodeId]['endTime'] = _function(_nodeId)
+            self.mark[_nodeId] = True
+            return
+        for _parentId in self.deps_parent[_nodeId]:
+            if _parentId[0] not in self.mark:
+                self.shift_time(_parentId[0], _function)
+        _maxEndTime = float('-inf')
+        for _parentId in self.deps_parent[_nodeId]:
+            _endTime = _function(_parentId[0])
+            #print(_parentId[0], _endTime, self.all_dict[_parentId[0]]['endTime'] )
+            if _endTime > _maxEndTime:
+                _maxEndTime = _endTime
+                _delta = self.all_dict[_parentId[0]]['endTime'] - _endTime
+        self.update_nodeData(_nodeId, _delta, _function)
+        self.mark[_nodeId] = True
+
+    def shift_deps(self):
+        self.deps_parent_mod = {}
+        for _nodeId, _parents in self.deps_parent.items():
+            for _pTuple in _parents:
+                _pId = _pTuple[0]
+                _newEndTime = self.all_modified_dict[_pId]['endTime']
+                self.deps_parent_mod.setdefault(_nodeId, []).append((_pId, _newEndTime))
+        for idx, _deps in enumerate(self.deps_modified):
+            if not _deps['time'] == -1:
+                _orig_startTime = self.all_dict[_deps['a1']]['startTime']
+                _orig_endTime = self.all_dict[_deps['a1']]['endTime']
+                _mod_startTime = self.all_modified_dict[_deps['a1']]['startTime']
+                _mod_endTime = self.all_modified_dict[_deps['a1']]['endTime']
+                _ratio = (_mod_endTime - _mod_startTime)/(_orig_endTime - _orig_startTime)
+                _orig_Offset = _deps['time'] - _orig_startTime
+                _a1Time = _mod_startTime + (_orig_Offset * _ratio)
+                #print(_deps['a1'], _deps['a2'], _orig_startTime, _orig_endTime, _mod_startTime, _mod_endTime,_ratio, _orig_Offset, _deps['time'], _a1Time )
+                if _a1Time < self.all_modified_dict[_deps['a2']]['startTime']:
+                    _a1Time = -1
+                self.deps_modified[idx] = {'a1': _deps['a1'], 'time': _a1Time, 'a2': _deps['a2']}
+
+    ###################################################################################################
+    #  What-if analysis --ends
+    ###################################################################################################
 
     def analyze(self):
         logging.info('Analyzing: ' + str(self.trace))
@@ -1353,19 +1765,46 @@ class Trace():
         if not self.dependency():
             return False, False, False
         self.order_layout()
-        return self.WriteOutputlog(mode='lib'), self.start_time, self.cpu
+        #self.adjust_time_compressed()
+        ###
+        # Do the same untill all are marked
+        #keep track of marked
+        ###
+        _nodeId_list = [x[0] for x in self.all_modified]
+        _nodeId_list.reverse()
+        for _nodeId in _nodeId_list:
+            if _nodeId not in self.mark:
+                #self.shift_time(_nodeId, self._compression)
+                self.shift_time(_nodeId, self._compression)
+        self.shift_deps()
+        download_0, parse_0 = self.find_download0()
+        #self.find_critical_path(self.last_activity[0][0])  # , download_0[0])
+        self.find_critical_path_mod(self.last_activity[0][0])  # , download_0[0])
+        self.critical_path.reverse()
+        print('Critical Path: ' + str(self.critical_path))
+        return self.WriteOutputlog_new(mode='lib'), self.start_time, self.cpu
 
 
 ########################################################################################################################
 #   Main Entry Point
 ########################################################################################################################
 def main():
-    _trace_file = './traces/0_www.yahoo.com.trace'
+    #_trace_file = '/Users/jnejati/PycharmProjects/wpt/traces/1_testbed01.trace' # uncompressed mutli imgs
+    _trace_file = '/Users/jnejati/PycharmProjects/wpt/traces/1_testbed01_jsbig_uncompgood3g.trace'
+    _trace_file = '/Users/jnejati/PycharmProjects/wpt/traces/1_testbed01_jsbig_compgood3g.trace'
+    _trace_file = '/Users/jnejati/PycharmProjects/wpt/traces/0_www.cnn.com.trace'
+
+
     trace = Trace(_trace_file)
     _result, _start_ts, _cpu_times = trace.analyze()
-    _output_file = './results/yahoo.json'
+    """for t in trace.networks_list:
+        if 'dcmads.js' in t[1]['url']:
+        #if 'dcmads.js' in t:
+            print(t)
+    exit()"""
+    _output_file = './results/cnn_cold_new.json'
     trace.WriteJson(_output_file, _result)
-    trace.draw_waterfall(_output_file, 'yahoo2.html')
+    trace.draw_waterfall(_output_file, 'cnn_new.html')
 
 
 if '__main__' == __name__:
