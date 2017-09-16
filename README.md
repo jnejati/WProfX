@@ -35,7 +35,7 @@ Plug the device and enable the [port forwarding][adb], for example:
 [adb]: https://developer.chrome.com/devtools/docs/remote-debugging-legacy
 
 #### Note
-You might find following flags usefull depending on your use case:
+You might find the following flags usefull depending on your use case:
 
     google-chrome-stable --remote-debugging-port=9222 --start-maximized  --ignore-certificate-errors --user-data-dir=$TMPDIR/chrome-profiling --no-default-browser-check
 
