@@ -6,7 +6,7 @@ PLTSpeed captures and analyzes Chrome browsing traces in order to extract depend
 Usage
 ----------------
 
-Enable Chrome/Chromium remote debugging:
+#Enable Chrome/Chromium remote debugging:
 google-chrome-stable --remote-debugging-port=9222 --start-maximized  --ignore-certificate-errors --user-data-dir=$TMPDIR/chrome-profiling --no-default-browser-check
 npm install chrome-remote-interface
 
