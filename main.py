@@ -35,7 +35,7 @@ def main():
         net_profile = json.load(f)[0]
         _path =  os.path.join(base_dir, net_profile['device_type'] + '_' + net_profile['name'])
         webDnsSetup.clear_folder(_path)
-    with open(os.path.join(base_dir, input_file) as _sites:
+    with open(os.path.join(base_dir, input_file)) as _sites:
         for _site in _sites:
             #os.system('pkill chrome')
             #os.system('pkill google-chrome-stable')
