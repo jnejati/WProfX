@@ -8,7 +8,7 @@ import pickle
 import webDnsSetup
 #import network_emulator
 import os
-import convert
+#import convert
 from urllib.parse import urlparse
 import time
 #import modifications as modify
