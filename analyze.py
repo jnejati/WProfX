@@ -11,7 +11,7 @@ coloredlogs.install(level='INFO')
 
 #_command = '/home/jnejati/PLTSpeed/analysis/trace_parser.py'
 #logging.getLogger().setLevel(logging.INFO)
-_experiment_dir = '/home/jnejati/PLTSpeed/desktop_test1'
+_experiment_dir = '/home/jnejati/PLTSpeed/desktop_livetest'
 _all_dirs = os.listdir(_experiment_dir)
 _all_dirs.sort()
 _exclude_list = []
