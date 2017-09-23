@@ -29,7 +29,7 @@ def main():
     input_file = 'live_test.txt'
     base_dir = '/home/jnejati/PLTSpeed'
     config_file = '/home/jnejati/PLTSpeed/confs/netProfiles_live.json'
-    reapeat_no = 3
+    repeat_no = 3
     #perf_args = '-etask-clock,context-switches,branches,branch-misses,cache-misses,cache-references,cycles:u,cycles:k,page-faults,sched:sched_switch,sched:sched_stat_runtime,sched:sched_wakeup,instructions:u,instructions:k,dTLB-load-misses,dTLB-loads,dTLB-store-misses,dTLB-stores,iTLB-load-misses,iTLB-loads,L1-dcache-load-misses,L1-dcache-loads,L1-dcache-stores,L1-icache-load-misses,LLC-load-misses,LLC-loads,LLC-store-misses,LLC-stores'
     with open(config_file, 'r') as f:
         net_profile = json.load(f)[0]
