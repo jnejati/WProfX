@@ -13,11 +13,11 @@ from socket import gethostname
 from pprint import pprint
 from time import gmtime, mktime
 import tldextract
-import dnsserver
-from ripe.atlas.sagan import PingResult
-from ripe.atlas.cousteau import Measurement, Probe
-import ccTld
-import genCert
+#import dnsserver
+#from ripe.atlas.sagan import PingResult
+#from ripe.atlas.cousteau import Measurement, Probe
+#import ccTld
+#import genCert
 
 
 def create_self_signed_cert(cert_dir, domain_name):
