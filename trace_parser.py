@@ -96,6 +96,8 @@ class Trace():
         self.all_startTime_lookup = {}
         self.start_time = None
         self.end_time = None
+        self.computationTime = 0
+        self.networkingTime = 0
         self.cpu = {'main_thread': None}
         self.feature_usage = None
         self.feature_usage_start_time = None
@@ -213,7 +215,7 @@ class Trace():
                        'sockets_bytes_out': self.netlog['bytes_out'],
                        'ssl_sockets_bytes_out': self.netlog['ssl_bytes_out'],
                        'ssl_sockets_bytes_in': self.netlog['ssl_bytes_in']}
-        _tmp_critical_path = {'criticalPath': self.critical_path}
+        _tmp_critical_path = {'criticalPath': self.critical_path, 'networkingTime': self.networkingTime, 'computationTime': self.computationTime}
 
         self.output.append(_tmp_rendering)
         self.output.append(_tmp_painting)
@@ -1191,14 +1193,17 @@ class Trace():
         download_0, parse_0 = self.find_download0()
         if not download_0 or not parse_0:
             return False
-        # print('download_0: ', download_0)
-        # print('parse_0: ', parse_0)
+        print('download_0: ', download_0)
+        print('parse_0: ', parse_0)
         self.G.graph['download_0'] = download_0[0]
         self.G.graph['parse_0'] = parse_0[0]
 
         for obj in self.all:
+            #print(self.all)
             if obj[0].startswith('Networking') or obj[0].startswith('Loading') or obj[0].startswith('Scripting'):
+                print('obj0: {0} \n obj1: {1}'.format(obj[0], obj[1]))
                 self.G.add_node(obj[0], obj[1])
+                #self.G.add_node(obj[0])
         return True
 
     def edge_start(self, e1, s2):
@@ -1250,6 +1255,20 @@ class Trace():
                 exit()
             return selected[0]
 
+    #JavaScript execution is blocked until CSS is fetched and then CSSOM is built then finish js and build the DOM
+    # Find all Scripting's download activities that their download time is before CSS execution --> add dep css_eval--> js_eval
+    def find_blocking_css(self, js_networking_endTime, js_scripting_endTime):
+        id_list = []
+        for loadings in self.loading_list:
+            load_id = loadings[0]
+            load_data = loadings[1]
+            load_name = load_data['name']
+            if load_name.startswith('ParseAuthorStyleSheet'):
+                _css_endTime = load_data['endTime']
+                if _css_endTime > js_networking_endTime and _css_endTime < js_scripting_endTime:
+                    id_list.append(load_id)
+        return id_list
+
     # Find latest parse HTML before activity
     def find_parse_id(self, activitiy_data):
         activity_startTime = activitiy_data['startTime']
@@ -1268,7 +1287,7 @@ class Trace():
                         selected = [load_id, diff]
         if selected[0] in ['', None]:
             print(selected[0], activitiy_data)
-            exit()
+            return ''
         return selected[0]
 
     # Find latest scripting before parsing
@@ -1290,6 +1309,41 @@ class Trace():
             return None
         return selected[0]
 
+
+    def crp_analysis(self):
+        cr_len = len(self.critical_path)
+        i = cr_len - 1
+        _networkingTime = 0
+        _computationTime = 0
+        while i >= 1:
+            _nodeId = self.critical_path[i]
+            _prev = self.critical_path[i - 1]
+            if i == cr_len - 1:
+                duration = self.G.node[_nodeId]['endTime'] - self.G.node[_nodeId]['startTime']
+            else:
+                duration = _endTime - self.G.node[_nodeId]['startTime']
+            # Calculate triggerTime for prev
+            for _tup in self.deps_parent[_nodeId]:
+                if _tup[0] == _prev:
+                    _endTime = _tup[1]
+                    break
+            i -= 1
+            if _nodeId.startswith('Networking'):
+                _networkingTime += duration
+            else:
+                _computationTime += duration
+        duration = _endTime - self.G.node[_prev]['startTime']
+        if _nodeId.startswith('Networking'):
+            _networkingTime += duration
+        else:
+            _computationTime += duration
+        self.networkingTime = round(_networkingTime, 2)
+        self.computationTime = round(_computationTime, 2)
+
+        #calculate compute and network on crp
+        #calcualte CRP bytes (match with RTT)
+
+
     def dependency(self):
         if not self.CreateGraph():
             return False
@@ -1297,6 +1351,7 @@ class Trace():
         if not _download0Id:
             return False
         _parse0Id = self.G.graph['parse_0']
+        print(_download0Id,_parse0Id)
         a2_startTime, a1_triggered = self.edge_start(self.G.node[_download0Id]['endTime'],
                                                      self.G.node[_parse0Id]['startTime'])
         self.G.add_edge(_download0Id, _parse0Id,
@@ -1330,6 +1385,7 @@ class Trace():
                             a1_triggered = self.G.node[_parseID]['endTime']
                         self.deps_parent.setdefault(_nodeId, []).append((_parseID, a1_triggered))
                     elif _nodeData['fromScript'] not in ['Null', None, '']:
+
                         if len(self.scripts_lookup_url[urldefrag(_nodeData['fromScript'])[0]]) <= 1:
                             _script_nodeId = self.scripts_lookup_url[urldefrag(_nodeData['fromScript'])[0]][0]
                         else:
@@ -1355,6 +1411,7 @@ class Trace():
                     else:
                         _netowrk_nodeId = self.find_url(urldefrag(_nodeData['url'])[0], _nodeData, 'network')
                     _netowrk_nodeData = self.networks_list[int(_netowrk_nodeId.split('_')[1])][1]
+
                     if _netowrk_nodeData['startTime'] < self.G.node[_nodeId]['startTime']:
                         a2_startTime, a1_triggered = self.edge_start(self.G.node[_netowrk_nodeId]['endTime'],
                                                                      self.G.node[_nodeId]['startTime'])
@@ -1365,6 +1422,21 @@ class Trace():
                         if a1_triggered == -1:
                             a1_triggered = self.G.node[_netowrk_nodeId]['endTime']
                         self.deps_parent.setdefault(_nodeId, []).append((_netowrk_nodeId, a1_triggered))
+
+                        ### Add css_eval to js_eval dep
+                        _cssEvalIds = self.find_blocking_css(_netowrk_nodeData['endTime'],self.G.node[_nodeId]['endTime'] )
+                        for _cssEvalId in _cssEvalIds:
+                            if _cssEvalId:
+                                a2_startTime, a1_triggered = self.edge_start(self.G.node[_cssEvalId]['endTime'],
+                                                                             self.G.node[_nodeId]['startTime'])
+                                self.G.add_edge(_cssEvalId, _nodeId,
+                                            startTime=a2_startTime,
+                                            endTime=self.G.node[_nodeId]['startTime'])
+                                self.deps.append({'time': a1_triggered, 'a1': _cssEvalId, 'a2': _nodeId})
+                                if a1_triggered == -1:
+                                    a1_triggered = self.G.node[_cssEvalId]['endTime']
+                                self.deps_parent.setdefault(_nodeId, []).append((_cssEvalId, a1_triggered))
+
 
                 elif _nodeId.startswith('Loading'):
                     if _nodeData['name'] == 'ParseAuthorStyleSheet':
@@ -1550,7 +1622,7 @@ class Trace():
                        'sockets_bytes_out': self.netlog['bytes_out'],
                        'ssl_sockets_bytes_out': self.netlog['ssl_bytes_out'],
                        'ssl_sockets_bytes_in': self.netlog['ssl_bytes_in']}
-        _tmp_critical_path = {'criticalPath': self.critical_path}
+        _tmp_critical_path = {'criticalPath': self.critical_path, 'networkingTime': self.networkingTime, 'computationTime': self.computationTime}
 
         self.output.append(_tmp_rendering)
         self.output.append(_tmp_painting)
@@ -1772,16 +1844,18 @@ class Trace():
         ###
         _nodeId_list = [x[0] for x in self.all_modified]
         _nodeId_list.reverse()
+        """ Fix the issue with new css_blocking dep
         for _nodeId in _nodeId_list:
             if _nodeId not in self.mark:
                 #self.shift_time(_nodeId, self._compression)
-                self.shift_time(_nodeId, self._compression)
-        self.shift_deps()
+                self.shift_time(_nodeId, self._compression)"""
+        #self.shift_deps()
         download_0, parse_0 = self.find_download0()
-        #self.find_critical_path(self.last_activity[0][0])  # , download_0[0])
-        self.find_critical_path_mod(self.last_activity[0][0])  # , download_0[0])
+        self.find_critical_path(self.last_activity[0][0])  # , download_0[0])
+        #self.find_critical_path_mod(self.last_activity[0][0])  # , download_0[0])
         self.critical_path.reverse()
         print('Critical Path: ' + str(self.critical_path))
+        self.crp_analysis()
         return self.WriteOutputlog_new(mode='lib'), self.start_time, self.cpu
 
 
@@ -1792,7 +1866,7 @@ def main():
     #_trace_file = '/Users/jnejati/PycharmProjects/wpt/traces/1_testbed01.trace' # uncompressed mutli imgs
     _trace_file = '/Users/jnejati/PycharmProjects/wpt/traces/1_testbed01_jsbig_uncompgood3g.trace'
     _trace_file = '/Users/jnejati/PycharmProjects/wpt/traces/1_testbed01_jsbig_compgood3g.trace'
-    _trace_file = '/Users/jnejati/PycharmProjects/wpt/traces/0_www.cnn.com.trace'
+    _trace_file = '/Users/jnejati/PycharmProjects/wpt/traces/live_www.cnn.com.trace'
 
 
     trace = Trace(_trace_file)
@@ -1802,9 +1876,9 @@ def main():
         #if 'dcmads.js' in t:
             print(t)
     exit()"""
-    _output_file = './results/cnn_cold_new.json'
+    _output_file = './results/cnn.json'
     trace.WriteJson(_output_file, _result)
-    trace.draw_waterfall(_output_file, 'cnn_new.html')
+    trace.draw_waterfall(_output_file, 'cnn.html')
 
 
 if '__main__' == __name__:

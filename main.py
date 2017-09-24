@@ -58,7 +58,7 @@ def main():
                         os.mkdir(os.path.join(_run_data_folder, folder))
                 logging.info('Current profile: ' + net_profile['device_type'] + ' - ' + net_profile['name'] + ' run_no: ' + str(run_no) + ' site: ' + _site)
                 #os.system('pkill tcpdump')
-                time.sleep(5)
+                #time.sleep(5)
                 #_tcpdump_folder = os.path.join(_run_data_folder, 'tcpdump')
                 #_tcpdump_file = os.path.join(_tcpdump_folder, str(run_no) + '_' + s1.netloc)
                 #_tcpdump_cmd = ['tcpdump', '-i', 'enp1s0f0', '-s', '0','-U', '-w', _tcpdump_file, 'not', 'port', '22']
@@ -77,7 +77,7 @@ def main():
                 time.sleep(5)
                 try:
                     #_node_cmd = ['node', 'chrome_launcher.js', _site,  _trace_file, _summary_file, _screenshot_file, _tcpdump_pid]
-                    _node_cmd = ['node', 'chrome_launcher.js', _site,  _trace_file, _summary_file, _screenshot_file]
+                    _node_cmd = ['/home/jnejati/.nvm/versions/node/v6.0.0/bin/node', 'chrome_launcher.js', _site,  _trace_file, _summary_file, _screenshot_file]
                     #_cmd = _perf_cmd + _node_cmd
                     _cmd =  _node_cmd
                     subprocess.call(_cmd, timeout = 60)
@@ -85,8 +85,8 @@ def main():
                     print("Timeout:  ", _site, run_no)
                     with open (os.path.join(_site_data_folder, 'log.txt'), 'w+') as _log:
                         _log.write("Timed out:  " +  _site + ' ' +  str(run_no) + '\n')
-                time.sleep(15)
-            time.sleep(2)
+                time.sleep(5)
+            #time.sleep(2)
     stop = timeit.default_timer()
     logging.info(100*'-' + '\nTotal time: ' + str(stop -start)) 
 if __name__ == '__main__':
