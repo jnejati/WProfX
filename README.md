@@ -7,12 +7,18 @@ Setup
 -----
 Refer to [chrome-remote-interface] for the latest set up.
 [chrome-remote-interface]:https://github.com/cyrus-and/chrome-remote-interface
+[chrome-55]:http://www.slimjetbrowser.com/chrome/lnx/chrome64_55.0.2883.75.deb
+
+### Install google-chrome-stable
+
+	wget http://www.slimjetbrowser.com/chrome/lnx/chrome64_55.0.2883.75.deb
 
 ### Install chrome-remote-interface
 
     npm install chrome-remote-interface
 
 ### Chrome/Chromium
+ 
 
 #### Desktop
 
@@ -22,9 +28,9 @@ Start Chrome with the `--remote-debugging-port` option, for example:
 
 ##### Headless
 
-Since version 59, additionally use the `--headless` option, for example:
-
-    google-chrome-stable --headless --remote-debugging-port=9222
+	sudo apt-get install xvfb
+	
+	/usr/bin/Xvfb :7 -screen 0 1024x768x24 &
 
 #### Android
 
@@ -37,7 +43,7 @@ Plug the device and enable the [port forwarding][adb], for example:
 #### Note
 You might find the following flags usefull depending on your use case
 
-    google-chrome-stable --remote-debugging-port=9222 --start-maximized  --ignore-certificate-errors --user-data-dir=$TMPDIR/chrome-profiling --no-default-browser-check
+    DISPLAY=:7 google-chrome-stable --remote-debugging-port=9222 --start-maximized  --ignore-certificate-errors --user-data-dir=$TMPDIR/chrome-profiling --no-default-browser-check
 
 [WProf]: http://www3.cs.stonybrook.edu/~arunab/papers/wprof.pdf
 [WProf-M]:http://www3.cs.stonybrook.edu/~arunab/papers/wprofm.pdf
