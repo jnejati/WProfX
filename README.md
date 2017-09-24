@@ -45,7 +45,22 @@ You might find the following flags usefull depending on your use case
 ### Usage
 
 #### Collect traces
-- Install all required python modules in `main.py`.
+- Install all required python modules in `main.py`, `trace_parser.py` and `analyze.py`.
+
+	sudo pip3 install tldextract
+	
+	sudo pip3 install pyOpenssl
+	
+	sudo pip3 install coloredlogs
+	
+	sudo pip3 install networkx==1.9
+	
+	sudo pip3 install matplotlib
+	
+	sudo pip3 install bokeh
+
+	sudo apt-get install python3-tk
+	
 - Put the list of Web sites you want to analyze in `live_test.txt`.
 - Configure  `bases_dir`, `repeat_no` variables in main.py based on your preferences.
 - Run `main.py` with python > 3.3 
