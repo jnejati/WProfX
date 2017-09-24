@@ -45,7 +45,8 @@ You might find the following flags usefull depending on your use case
 ### Usage
 
 #### Collect traces
-##### Install all required python modules in `main.py`, `trace_parser.py` and `analyze.py`.
+
+-- Install all required python modules in `main.py`, `trace_parser.py` and `analyze.py`.
 
 	sudo pip3 install tldextract
 	
