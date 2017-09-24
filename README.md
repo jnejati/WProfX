@@ -46,7 +46,7 @@ You might find the following flags usefull depending on your use case
 
 #### Collect traces
 
--- Install all required python modules in `main.py`, `trace_parser.py` and `analyze.py`.
+Install all required python modules in `main.py`, `trace_parser.py` and `analyze.py`.
 
 	sudo pip3 install tldextract
 	
@@ -62,15 +62,15 @@ You might find the following flags usefull depending on your use case
 
 	sudo apt-get install python3-tk
 	
-##### Put the list of Web sites you want to analyze in `live_test.txt`.
+- Put the list of Web sites you want to analyze in `live_test.txt`.
 
-##### Configure  `bases_dir`, `repeat_no` variables in main.py based on your preferences.
+- Configure  `bases_dir`, `repeat_no` variables in main.py based on your preferences.
 
-##### Run `main.py` with python > 3.3 
+- Run `main.py` with python > 3.3 
 	
 
 #### Analyze traces
 
-##### Configure  `_experiment_dir` in `analyze.py`.
+- Configure  `_experiment_dir` in `analyze.py`.
 
-##### Run `analyze.py` with python > 3.3
+- Run `analyze.py` with python > 3.3
