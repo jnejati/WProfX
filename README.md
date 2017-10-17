@@ -15,7 +15,7 @@ Refer to [chrome-remote-interface] for the latest set up.
 
 ### Install chrome-remote-interface
 
-    npm install chrome-remote-interface
+    npm install chrome-remote-interface@v0.23.3
 
 ### Chrome/Chromium
  
