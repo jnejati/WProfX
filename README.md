@@ -80,3 +80,46 @@ Install all required python modules in `main.py`, `trace_parser.py` and `analyze
 - Configure  `_experiment_dir` in `analyze.py`.
 
 - Run `analyze.py` with python > 3.3
+
+Anlaysi output format
+-----
+The output of `analyze.py` is a `JSON` file which embodies all activities involved in a page load process. Moreover, it will give information about start and end time of activities and moe interestingly the dependency relationship between such activities.
+
+A sample genereated `JSON` file can be found at the output directory.
+
+For each URL, a list of  entries carry information about all objects involved in processing that URL. Information include start/end time, mimeType and whether that each object has been called from a script or from the main HTML source.
+
+```json
+"url": "http://www.cnn.com/",
+"startTime": 0.0,
+"mimeType": "text/html",
+"id": "31739.1",
+"fromScript": "Null",
+"transferSize": 4079,
+"endTime": 125.068,
+"activityId": "Networking_0",
+"responseReceivedTime": 98.156,
+"statusCode": 200
+```
+
+The entry with `"id": "Deps"` carries information regarding the dependency between activities. 
+
+For example, the following snippet states that  `Scripting_71` depends on `Networking_144` to be completed. Note that a `-1` for the  `time` value denotes a complete dependency relationship, i.e., `a1` needs to be finished before `a2` can start.
+
+```json
+{
+	"time": -1,
+	"a2": "Scripting_71",
+	"a1": "Networking_144"
+},
+```
+
+Whereas, a partial dependency in which, `time` value denotes the actual time in `milliseconds` when `a2` can start.
+
+```json
+{
+  "time": 1003.723,
+  "a2": "Networking_30",
+  "a1": "Scripting_7"
+}
+```
