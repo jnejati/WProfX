@@ -28,8 +28,8 @@ def main():
     start = timeit.default_timer()
     input_file = 'live_test.txt'
     #base_dir = '/home/jnejati/PLTSpeed'
-    base_dir = '/home/jnejati/WProfX'
-    config_file = '/home/jnejati/WProfX/confs/netProfiles_live.json'
+    base_dir =  '/var/www/wprofx.cs.stonybrook.edu/public_html/WProfX'
+    config_file = '/var/www/wprofx.cs.stonybrook.edu/public_html/WProfX/confs/netProfiles_live.json'
     repeat_no = 1
     #perf_args = '-etask-clock,context-switches,branches,branch-misses,cache-misses,cache-references,cycles:u,cycles:k,page-faults,sched:sched_switch,sched:sched_stat_runtime,sched:sched_wakeup,instructions:u,instructions:k,dTLB-load-misses,dTLB-loads,dTLB-store-misses,dTLB-stores,iTLB-load-misses,iTLB-loads,L1-dcache-load-misses,L1-dcache-loads,L1-dcache-stores,L1-icache-load-misses,LLC-load-misses,LLC-loads,LLC-store-misses,LLC-stores'
     with open(config_file, 'r') as f:
@@ -75,7 +75,7 @@ def main():
                 _screenshot_file = os.path.join(_screenshot_folder, str(run_no) + '_' + s1.netloc)
                 _summary_file = os.path.join(_summary_folder, str(run_no) + '_' + s1.netloc)
                 logging.info(_trace_file, _screenshot_file, _summary_file)
-                time.sleep(5)
+                #time.sleep(5)
                 try:
                     #_node_cmd = ['node', 'chrome_launcher.js', _site,  _trace_file, _summary_file, _screenshot_file, _tcpdump_pid]
                     _node_cmd = ['/home/jnejati/.nvm/versions/node/v6.9.5/bin/node', 'chrome_launcher.js', _site,  _trace_file, _summary_file, _screenshot_file]
@@ -86,7 +86,7 @@ def main():
                     print("Timeout:  ", _site, run_no)
                     with open (os.path.join(_site_data_folder, 'log.txt'), 'w+') as _log:
                         _log.write("Timed out:  " +  _site + ' ' +  str(run_no) + '\n')
-                time.sleep(5)
+                time.sleep(2)
             #time.sleep(2)
     stop = timeit.default_timer()
     logging.info(100*'-' + '\nTotal time: ' + str(stop -start)) 

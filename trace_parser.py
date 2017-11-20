@@ -1444,8 +1444,7 @@ class Trace():
                             if len(self.networks_lookup_url[urldefrag(_nodeData['styleSheetUrl'])[0]]) <= 1:
                                 _netowrk_nodeId = self.networks_lookup_url[urldefrag(_nodeData['styleSheetUrl'])[0]][0]
                             else:
-                                _netowrk_nodeId = self.find_url(urldefrag(_nodeData['styleSheetUrl'])[0], _nodeData,
-                                                                'network')
+                                _netowrk_nodeId = self.find_url(urldefrag(_nodeData['styleSheetUrl'])[0], _nodeData, 'network')
 						except KeyError:
 						    if _nodeData['styleSheetUrl'].startswith('https'):
 							    _tmp = _nodeData['styleSheetUrl'].replace('https', 'http')
