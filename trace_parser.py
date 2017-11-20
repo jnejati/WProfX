@@ -1481,10 +1481,13 @@ class Trace():
                         # Update: no need if a clean start happens in testbed.
                         ###
                         if _nodeData['startTime'] > self.G.node[_parse0Id]['startTime'] and not _nodeData['url'] == '':
-                            if len(self.networks_lookup_url[urldefrag(_nodeData['url'])[0]]) <= 1:
-                                _netowrk_nodeId = self.networks_lookup_url[urldefrag(_nodeData['url'])[0]][0]
-                            else:
-                                _netowrk_nodeId = self.find_url(urldefrag(_nodeData['url'])[0], _nodeData, 'network')
+                            try:
+                                if len(self.networks_lookup_url[urldefrag(_nodeData['url'])[0]]) <= 1:
+                                    _netowrk_nodeId = self.networks_lookup_url[urldefrag(_nodeData['url'])[0]][0]
+                                else:
+                                    _netowrk_nodeId = self.find_url(urldefrag(_nodeData['url'])[0], _nodeData, 'network')
+                            except Exception as e:
+                                continue
                             _netowrk_nodeData = self.networks_list[int(_netowrk_nodeId.split('_')[1])][1]
                             a2_startTime, a1_triggered = self.edge_start(self.G.node[_netowrk_nodeId]['endTime'],
                                                                          self.G.node[_nodeId]['startTime'])
