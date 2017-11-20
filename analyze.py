@@ -12,6 +12,7 @@ coloredlogs.install(level='INFO')
 #_command = '/home/jnejati/PLTSpeed/analysis/trace_parser.py'
 #logging.getLogger().setLevel(logging.INFO)
 _experiment_dir = '/var/www/wprofx.cs.stonybrook.edu/public_html/WProfX/desktop_livetest'
+_wprofx_graphs = '/var/www/wprofx.cs.stonybrook.edu/public_html/graphs'
 _all_dirs = os.listdir(_experiment_dir)
 _all_dirs.sort()
 _exclude_list = []
@@ -35,7 +36,7 @@ for _site_dir in working_dirs:
         _trace_dir = os.path.join(_run_dir, 'trace')
         for _file in os.listdir(_trace_dir):
             _trace_file = os.path.join(_trace_dir, _file)
-            _output_file = os.path.join(_analysis_dir, _file.split('.trace')[0] + '.out')
+            _output_file = os.path.join(_analysis_dir, _file.split('.trace')[0] + '.json')
             _waterfall_file = os.path.join(_analysis_dir, _file.split('.trace')[0] + '.html')
             for _f in os.listdir(_summary_dir):
                 if _f.endswith('times'):
@@ -53,5 +54,4 @@ for _site_dir in working_dirs:
             _load_time = round(((float(_time['load'])* 1000000)  - float(_start_ts)) / 1000, 2)
             _result.insert(0, {'load': _load_time, 'cpu_time': _cpu_times['total_usecs']})
             trace.WriteJson(_output_file, _result)
-    with open('analyzed_sofar.txt', 'a') as _a:
-        _a.write(_site_dir.split('/')[-1] + '\n')
+            shutil.copy(_output_file, _wprofx_graphs)

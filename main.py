@@ -40,7 +40,7 @@ def main():
         for _site in _sites:
             #os.system('pkill chrome')
             #os.system('pkill google-chrome-stable')
-            #time.sleep(5)
+            time.sleep(5)
             #os.system('DISPLAY=:7 sudo google-chrome-stable --remote-debugging-port=9222 --enable-benchmarking --enable-net-benchmarking --start-maximized  --ignore-certificate-errors --user-data-dir=$TMPDIR/chrome-profiling --no-default-browser-check &')
             #time.sleep(15)
             _site = _site.strip()
@@ -75,7 +75,7 @@ def main():
                 _screenshot_file = os.path.join(_screenshot_folder, str(run_no) + '_' + s1.netloc)
                 _summary_file = os.path.join(_summary_folder, str(run_no) + '_' + s1.netloc)
                 logging.info(_trace_file, _screenshot_file, _summary_file)
-                #time.sleep(5)
+                time.sleep(5)
                 try:
                     #_node_cmd = ['node', 'chrome_launcher.js', _site,  _trace_file, _summary_file, _screenshot_file, _tcpdump_pid]
                     _node_cmd = ['/home/jnejati/.nvm/versions/node/v6.9.5/bin/node', 'chrome_launcher.js', _site,  _trace_file, _summary_file, _screenshot_file]
@@ -86,7 +86,7 @@ def main():
                     print("Timeout:  ", _site, run_no)
                     with open (os.path.join(_site_data_folder, 'log.txt'), 'w+') as _log:
                         _log.write("Timed out:  " +  _site + ' ' +  str(run_no) + '\n')
-                time.sleep(2)
+                time.sleep(5)
             #time.sleep(2)
     stop = timeit.default_timer()
     logging.info(100*'-' + '\nTotal time: ' + str(stop -start)) 
