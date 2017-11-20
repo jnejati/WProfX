@@ -1445,19 +1445,19 @@ class Trace():
                                 _netowrk_nodeId = self.networks_lookup_url[urldefrag(_nodeData['styleSheetUrl'])[0]][0]
                             else:
                                 _netowrk_nodeId = self.find_url(urldefrag(_nodeData['styleSheetUrl'])[0], _nodeData, 'network')
-						except KeyError:
-						    if _nodeData['styleSheetUrl'].startswith('https'):
-							    _tmp = _nodeData['styleSheetUrl'].replace('https', 'http')
-					        elif _nodeData['styleSheetUrl'].startswith('http'):
-						        _tmp = _nodeData['styleSheetUrl'].replace('http', 'https')
-						    try:
-						        if len(self.networks_lookup_url[urldefrag(_tmp)[0]]) <= 1:
-						            _netowrk_nodeId = self.networks_lookup_url[urldefrag(_tmp)[0]][0]
-							    else:
-								    _netowrk_nodeId = self.find_url(urldefrag(_tmp)[0], _nodeData, 'network')
-						    except Exception as e:
-							    print('Exception in dependency()', e, _tmp, urldefrag(_tmp))
-						        continue
+			except KeyError:
+			    if _nodeData['styleSheetUrl'].startswith('https'):
+				_tmp = _nodeData['styleSheetUrl'].replace('https', 'http')
+			    elif _nodeData['styleSheetUrl'].startswith('http'):
+				_tmp = _nodeData['styleSheetUrl'].replace('http', 'https')
+			    try:
+				if len(self.networks_lookup_url[urldefrag(_tmp)[0]]) <= 1:
+				    _netowrk_nodeId = self.networks_lookup_url[urldefrag(_tmp)[0]][0]
+				else:
+				    _netowrk_nodeId = self.find_url(urldefrag(_tmp)[0], _nodeData, 'network')
+			    except Exception as e:
+				print('Exception in dependency()', e, _tmp, urldefrag(_tmp))
+				continue
                         except Exception as e:
                             print(e)
                             continue
