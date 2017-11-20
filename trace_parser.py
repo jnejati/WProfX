@@ -1450,6 +1450,8 @@ class Trace():
                                 _tmp = _nodeData['styleSheetUrl'].replace('https', 'http')
                             elif _nodeData['styleSheetUrl'].startswith('http'):
                                 _tmp = _nodeData['styleSheetUrl'].replace('http', 'https')
+                            else:
+                                continue
                             try:
                                 if len(self.networks_lookup_url[urldefrag(_tmp)[0]]) <= 1:
                                     _netowrk_nodeId = self.networks_lookup_url[urldefrag(_tmp)[0]][0]
