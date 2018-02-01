@@ -117,5 +117,6 @@ Whereas, a partial dependency in which, `time` value denotes the actual time in 
 
 Papers
 -----
-[WProf]: http://www3.cs.stonybrook.edu/~arunab/papers/wprof.pdf
-[WProf-M]: http://www3.cs.stonybrook.edu/~arunab/papers/wprofm.pdf
+[WProf](http://www3.cs.stonybrook.edu/~arunab/papers/wprof.pdf)
+
+[WProf-M](http://www3.cs.stonybrook.edu/~arunab/papers/wprofm.pdf)
