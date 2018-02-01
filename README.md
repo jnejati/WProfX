@@ -5,20 +5,32 @@ WProfX captures and analyzes Chrome browsing traces in order to extract dependen
 
 Setup
 -----
-Refer to [chrome-remote-interface] for the latest set up.
-[chrome-remote-interface]:https://github.com/cyrus-and/chrome-remote-interface
-[chrome-55]:http://www.slimjetbrowser.com/chrome/lnx/chrome64_55.0.2883.75.deb
-
-### Install google-chrome-stable
-
-	wget http://www.slimjetbrowser.com/chrome/lnx/chrome64_55.0.2883.75.deb
-
-### Install chrome-remote-interface
+### Install Node.JS Dependencies: chrome-remote-interface
 
     npm install chrome-remote-interface@v0.23.3
+    
+### Install Python Dependencies:
+
+Install all required python modules in `main.py`, `trace_parser.py` and `analyze.py`.
+
+	sudo pip3 install tldextract
+	
+	sudo pip3 install pyOpenssl
+	
+	sudo pip3 install coloredlogs
+	
+	sudo pip3 install networkx==1.9
+	
+	sudo pip3 install matplotlib
+	
+	sudo pip3 install bokeh
+
+	sudo apt-get install python3-tk
+
+Usage
+-----
 
 ### Chrome/Chromium
- 
 
 #### Desktop
 
@@ -45,37 +57,16 @@ You might find the following flags usefull depending on your use case
 
     DISPLAY=:7 google-chrome-stable --remote-debugging-port=9222 --start-maximized  --ignore-certificate-errors --user-data-dir=$TMPDIR/chrome-profiling --no-default-browser-check
 
-[WProf]: http://www3.cs.stonybrook.edu/~arunab/papers/wprof.pdf
-[WProf-M]:http://www3.cs.stonybrook.edu/~arunab/papers/wprofm.pdf
-
-### Usage
-
-#### Collect traces
-
-Install all required python modules in `main.py`, `trace_parser.py` and `analyze.py`.
-
-	sudo pip3 install tldextract
-	
-	sudo pip3 install pyOpenssl
-	
-	sudo pip3 install coloredlogs
-	
-	sudo pip3 install networkx==1.9
-	
-	sudo pip3 install matplotlib
-	
-	sudo pip3 install bokeh
-
-	sudo apt-get install python3-tk
+### Collect traces
 	
 - Put the list of Web sites you want to analyze in `live_test.txt`.
 
-- Configure  `bases_dir`, `repeat_no` variables in main.py based on your preferences.
+- Configure  `bases_dir`, `config_file`, and `repeat_no` variables in main.py based on your preferences.
 
 - Run `main.py` with python > 3.3 
 	
 
-#### Analyze traces
+### Analyze traces
 
 - Configure  `_experiment_dir` in `analyze.py`.
 
@@ -123,3 +114,8 @@ Whereas, a partial dependency in which, `time` value denotes the actual time in 
     "a1": "Scripting_7"
 }
 ```
+
+Papers
+-----
+[WProf]: http://www3.cs.stonybrook.edu/~arunab/papers/wprof.pdf
+[WProf-M]: http://www3.cs.stonybrook.edu/~arunab/papers/wprofm.pdf
