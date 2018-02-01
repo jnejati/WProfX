@@ -28,8 +28,8 @@ def main():
     start = timeit.default_timer()
     input_file = 'live_test.txt'
     #base_dir = '/home/jnejati/PLTSpeed'
-    base_dir =  '/var/www/wprofx.cs.stonybrook.edu/public_html/WProfX'
-    config_file = '/var/www/wprofx.cs.stonybrook.edu/public_html/WProfX/confs/netProfiles_live.json'
+    base_dir =  ''
+    config_file = 'confs/netProfiles_live.json'
     repeat_no = 1
     #perf_args = '-etask-clock,context-switches,branches,branch-misses,cache-misses,cache-references,cycles:u,cycles:k,page-faults,sched:sched_switch,sched:sched_stat_runtime,sched:sched_wakeup,instructions:u,instructions:k,dTLB-load-misses,dTLB-loads,dTLB-store-misses,dTLB-stores,iTLB-load-misses,iTLB-loads,L1-dcache-load-misses,L1-dcache-loads,L1-dcache-stores,L1-icache-load-misses,LLC-load-misses,LLC-loads,LLC-store-misses,LLC-stores'
     with open(config_file, 'r') as f:
@@ -78,7 +78,7 @@ def main():
                 time.sleep(5)
                 try:
                     #_node_cmd = ['node', 'chrome_launcher.js', _site,  _trace_file, _summary_file, _screenshot_file, _tcpdump_pid]
-                    _node_cmd = ['/home/jnejati/.nvm/versions/node/v6.9.5/bin/node', 'chrome_launcher.js', _site,  _trace_file, _summary_file, _screenshot_file]
+                    _node_cmd = ['node', 'chrome_launcher.js', _site,  _trace_file, _summary_file, _screenshot_file]
                     #_cmd = _perf_cmd + _node_cmd
                     _cmd =  _node_cmd
                     subprocess.call(_cmd, timeout = 60)
