@@ -1,7 +1,7 @@
 WProfX
 =======================
 
-WProfX captures and analyzes Chrome browsing traces in order to extract dependency relationship between activities. It is a continuation of works done before in [WProf] and [WProf-M] papers.
+WProfX captures and analyzes Chrome browsing traces in order to extract dependency relationship between activities. It is a continuation of works done before in [WProf](http://www3.cs.stonybrook.edu/~arunab/papers/wprof.pdf) and [WProf-M](http://www3.cs.stonybrook.edu/~arunab/papers/wprofm.pdf) papers.
 
 Setup
 -----
@@ -114,9 +114,3 @@ Whereas, a partial dependency in which, `time` value denotes the actual time in 
     "a1": "Scripting_7"
 }
 ```
-
-Papers
------
-[WProf](http://www3.cs.stonybrook.edu/~arunab/papers/wprof.pdf)
-
-[WProf-M](http://www3.cs.stonybrook.edu/~arunab/papers/wprofm.pdf)
