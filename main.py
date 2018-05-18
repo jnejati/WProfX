@@ -5,7 +5,7 @@ __author__ = 'jnejati'
 import json
 import signal
 import pickle
-import webDnsSetup
+import shutil
 #import network_emulator
 import os
 #import convert
@@ -24,6 +24,16 @@ import logging
 import timeit
 
 
+def clear_folder(folder):
+    if os.path.isdir(folder):
+            for root, dirs, l_files in os.walk(folder):
+                for f in l_files:
+                    os.unlink(os.path.join(root, f))
+                for d in dirs:
+                    shutil.rmtree(os.path.join(root, d))
+    else:
+        os.makedirs(folder)
+
 def main():
     start = timeit.default_timer()
     input_file = 'live_test.txt'
@@ -35,7 +45,7 @@ def main():
     with open(config_file, 'r') as f:
         net_profile = json.load(f)[0]
         _path =  os.path.join(base_dir, net_profile['device_type'] + '_' + net_profile['name'])
-        webDnsSetup.clear_folder(_path)
+        clear_folder(_path)
     with open(os.path.join(base_dir, input_file)) as _sites:
         for _site in _sites:
             #os.system('pkill chrome')
