@@ -592,7 +592,7 @@ class Trace():
                 raise Exception('Unknown network name in net_trace')
 
     def is_balanced(self, a_list):
-        my_list = copy.deepcopy(a_list)
+        my_list = a_list
         t_stack = []
         for i in range(len(my_list)):
             if my_list[i]['ph'] == 'B':
@@ -1193,15 +1193,15 @@ class Trace():
         download_0, parse_0 = self.find_download0()
         if not download_0 or not parse_0:
             return False
-        print('download_0: ', download_0)
-        print('parse_0: ', parse_0)
+        #print('download_0: ', download_0)
+        #print('parse_0: ', parse_0)
         self.G.graph['download_0'] = download_0[0]
         self.G.graph['parse_0'] = parse_0[0]
 
         for obj in self.all:
             #print(self.all)
             if obj[0].startswith('Networking') or obj[0].startswith('Loading') or obj[0].startswith('Scripting'):
-                print('obj0: {0} \n obj1: {1}'.format(obj[0], obj[1]))
+                #print('obj0: {0} \n obj1: {1}'.format(obj[0], obj[1]))
                 self.G.add_node(obj[0], obj[1])
                 #self.G.add_node(obj[0])
         return True
@@ -1351,7 +1351,7 @@ class Trace():
         if not _download0Id:
             return False
         _parse0Id = self.G.graph['parse_0']
-        print(_download0Id,_parse0Id)
+        #print(_download0Id,_parse0Id)
         a2_startTime, a1_triggered = self.edge_start(self.G.node[_download0Id]['endTime'],
                                                      self.G.node[_parse0Id]['startTime'])
         self.G.add_edge(_download0Id, _parse0Id,
@@ -1370,8 +1370,7 @@ class Trace():
             if _nodeId.startswith('Networking') or _nodeId.startswith('Loading') or _nodeId.startswith('Scripting'):
                 if _nodeId.startswith('Networking'):
                     if _nodeData['fromScript'] in ['Null', None, ''] and _nodeData['startTime'] > \
-                            self.G.node[_parse0Id][
-                                'startTime']:
+                            self.G.node[_parse0Id]['startTime']:
                         _parseID = self.find_parse_id(_nodeData)
                         if _parseID in ['', None]:
                             _parseID = _parse0Id
@@ -1769,32 +1768,6 @@ class Trace():
             self.WriteJson(file, self.output)
         elif mode == 'lib':
             return self.output
-
-    def update_nodeData(self, _nodeId, _delta, _function):
-        self.all_modified_dict[_nodeId]['startTime'] -= _delta
-        self.all_modified_dict[_nodeId]['endTime'] -= _delta
-        self.all_modified_dict[_nodeId]['endTime'] = _function(_nodeId)
-
-    def _compression(self, _nodeId):
-        _startTime = self.all_modified_dict[_nodeId]['startTime']
-        _endTime = self.all_modified_dict[_nodeId]['endTime']
-        if _nodeId.startswith('Networking') and _nodeId not in self.mark:
-            _mimeType = self.all_modified_dict[_nodeId]['mimeType']
-            #_compressable = self.javascript_type_list + self.css_type_list + self.text_type_list
-            _compressable = self.javascript_type_list
-            if _mimeType in _compressable:
-                return _startTime + ((_endTime - _startTime) / 15.7)
-        return _endTime
-
-    def _caching(self, _nodeId):
-        _startTime = self.all_modified_dict[_nodeId]['startTime']
-        _endTime = self.all_modified_dict[_nodeId]['endTime']
-        if _nodeId.startswith('Networking') and _nodeId not in self.mark:
-            _mimeType = self.all_modified_dict[_nodeId]['mimeType']
-            if _mimeType.startswith('image'):
-                print(_nodeId)
-                return _startTime + 2
-        return _endTime
 
 
     def shift_time(self, _nodeId, _function):

@@ -1,1 +1,15 @@
-desktop_livetest/
+# Python Files
+__pycache__/
+
+# Node Files
+node_modules/
+
+
+# Data Input Files
+ripe/
+domains_list/
+res/
+
+# Runtime Files
+zones/
+archives/
